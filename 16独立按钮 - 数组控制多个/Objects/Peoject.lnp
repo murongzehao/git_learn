@@ -1,0 +1,10 @@
+".\Objects\Delay.obj",
+".\Objects\GPIO.obj",
+".\Objects\main.obj",
+".\Objects\NVIC.obj",
+".\Objects\STC8H_PWM.obj",
+".\Objects\UART.obj",
+".\Objects\UART_Isr.obj" 
+TO ".\Objects\Peoject" 
+PRINT(".\Listings\Peoject.m51") RAMSIZE(256) 
+DISABLEWARNING (16) 

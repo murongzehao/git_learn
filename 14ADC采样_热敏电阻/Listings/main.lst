@@ -1,0 +1,356 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              08/07/2024 17:35:08 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "config.h"
+   2          #include "ADC.h"
+   3          #include "Delay.h"
+   4          #include "GPIO.h"
+   5          #include "NVIC.h"
+   6          #include "UART.h"
+   7          #include "SWITCH.h"
+   8          
+   9          /**********************
+  10          通过热敏电阻读取环境温度
+  11          
+  12          1、通过ADC读取热敏电阻的电压值
+  13            -读取得到ADC数字
+  14            -计算得到电压值
+  15          
+  16          2、通过欧姆定律计算得到热敏电阻阻值
+  17          
+  18          3、根据阻值表得到温度值
+  19          
+  20          *****************************/
+  21          /******************* IO配置函数 *******************/
+  22          void  GPIO_config(void)
+  23          {
+  24   1        //p04
+  25   1      P0_MODE_IN_HIZ(GPIO_Pin_4);
+  26   1          // P30, P31 准双向
+  27   1        P3_MODE_IO_PU(GPIO_Pin_0 | GPIO_Pin_1);
+  28   1      }
+  29          
+  30          /***************  串口初始化函数 *****************/
+  31          void  UART_config(void)
+  32          {
+  33   1          COMx_InitDefine   COMx_InitStructure;         //结构定义
+  34   1      
+  35   1          COMx_InitStructure.UART_Mode      = UART_8bit_BRTx; //模式, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,U
+             -ART_9bit_BRTx
+  36   1          COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;     //选择波特率发生器, BRT_Timer1, BRT_Timer2 (注意: 串
+             -口2固定使用BRT_Timer2)
+  37   1          COMx_InitStructure.UART_BaudRate  = 115200ul;       //波特率, 一般 110 ~ 115200
+  38   1          COMx_InitStructure.UART_RxEnable  = ENABLE;         //接收允许,   ENABLE或DISABLE
+  39   1          COMx_InitStructure.BaudRateDouble = DISABLE;        //波特率加倍, ENABLE或DISABLE
+  40   1          UART_Configuration(UART1, &COMx_InitStructure);     //初始化串口1 UART1,UART2,UART3,UART4
+  41   1      
+  42   1          NVIC_UART1_Init(ENABLE,Priority_1);   //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,
+             -Priority_2,Priority_3
+  43   1      
+  44   1          UART1_SW(UART1_SW_P30_P31);   //UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
+  45   1      }
+  46          
+  47          
+  48          /******************* AD配置函数 *******************/
+  49          void  ADC_config(void)
+  50          {
+  51   1          ADC_InitTypeDef   ADC_InitStructure;    //结构定义
+C51 COMPILER V9.60.7.0   MAIN                                                              08/07/2024 17:35:08 PAGE 2   
+
+  52   1      
+  53   1          ADC_InitStructure.ADC_SMPduty   = 31;   //ADC 模拟信号采样时间控制, 0~31（注意： SMPDUTY 一定不能设置小
+             -于 10）
+  54   1          ADC_InitStructure.ADC_CsSetup   = 0;    //ADC 通道选择时间控制 0(默认),1
+  55   1          ADC_InitStructure.ADC_CsHold    = 1;    //ADC 通道选择保持时间控制 0,1(默认),2,3
+  56   1          ADC_InitStructure.ADC_Speed     = ADC_SPEED_2X16T;    //设置 ADC 工作时钟频率 ADC_SPEED_2X1T~ADC_SPEED_2
+             -X16T
+  57   1          ADC_InitStructure.ADC_AdjResult = ADC_RIGHT_JUSTIFIED;  //ADC结果调整,  ADC_LEFT_JUSTIFIED,ADC_RIGHT_JUS
+             -TIFIED
+  58   1          ADC_Inilize(&ADC_InitStructure);    //初始化
+  59   1          ADC_PowerControl(ENABLE);       //ADC电源开关, ENABLE或DISABLE
+  60   1          NVIC_ADC_Init(DISABLE,Priority_0);    //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,P
+             -riority_2,Priority_3
+  61   1      }
+  62          
+  63          u16 code temp_table[]= {
+  64            58354, // -55
+  65            55464, // -54
+  66            52698, // -53
+  67            50048, // -52
+  68            47515, // -51
+  69            45097, // -50
+  70            42789, // -49
+  71            40589, // -48
+  72            38492, // -47
+  73            36496, // -46
+  74            34597, // -45
+  75            32791, // -44
+  76            31075, // -43
+  77            29444, // -42
+  78            27896, // -41
+  79            26427, // -40
+  80            25034, // -39
+  81            23713, // -38
+  82            22460, // -37
+  83            21273, // -36
+  84            20148, // -35
+  85            19083, // -34
+  86            18075, // -33
+  87            17120, // -32
+  88            16216, // -31
+  89            15361, // -30
+  90            14551, // -29
+  91            13785, // -28
+  92            13061, // -27
+  93            12376, // -26
+  94            11728, // -25
+  95            11114, // -24
+  96            10535, // -23
+  97            9986,  // -22
+  98            9468,  // -21
+  99            8977,  // -20
+ 100            8513,  // -19
+ 101            8075,  // -18
+ 102            7660,  // -17
+ 103            7267,  // -16
+ 104            6896,  // -15
+ 105            6545,  // -14
+ 106            6212,  // -13
+ 107            5898,  // -12
+ 108            5601,  // -11
+ 109            5319,  // -10
+C51 COMPILER V9.60.7.0   MAIN                                                              08/07/2024 17:35:08 PAGE 3   
+
+ 110            5053,  // -9
+ 111            4801,  // -8
+ 112            4562,  // -7
+ 113            4336,  // -6
+ 114            4122,  // -5
+ 115            3920,  // -4
+ 116            3728,  // -3
+ 117            3546,  // -2
+ 118            3374,  // -1
+ 119            3211,  // 0
+ 120            3057,  // 1
+ 121            2910,  // 2
+ 122            2771,  // 3
+ 123            2639,  // 4
+ 124            2515,  // 5
+ 125            2396,  // 6
+ 126            2284,  // 7
+ 127            2177,  // 8
+ 128            2076,  // 9
+ 129            1978,  // 10
+ 130            1889,  // 11
+ 131            1802,  // 12
+ 132            1720,  // 13
+ 133            1642,  // 14
+ 134            1568,  // 15
+ 135            1497,  // 16
+ 136            1430,  // 17
+ 137            1366,  // 18
+ 138            1306,  // 19
+ 139            1248,  // 20
+ 140            1193,  // 21
+ 141            1141,  // 22
+ 142            1092,  // 23
+ 143            1044,  // 24
+ 144            1000,  // 25
+ 145            957,   // 26
+ 146            916,   // 27
+ 147            877,   // 28
+ 148            840,   // 29
+ 149            805,   // 30
+ 150            771,   // 31
+ 151            739,   // 32
+ 152            709,   // 33
+ 153            679,   // 34
+ 154            652,   // 35
+ 155            625,   // 36
+ 156            600,   // 37
+ 157            576,   // 38
+ 158            552,   // 39
+ 159            530,   // 40
+ 160            509,   // 41
+ 161            489,   // 42
+ 162            470,   // 43
+ 163            452,   // 44
+ 164            434,   // 45
+ 165            417,   // 46
+ 166            401,   // 47
+ 167            386,   // 48
+ 168            371,   // 49
+ 169            358,   // 50
+ 170            344,   // 51
+ 171            331,   // 52
+C51 COMPILER V9.60.7.0   MAIN                                                              08/07/2024 17:35:08 PAGE 4   
+
+ 172            318,   // 53
+ 173            306,   // 54
+ 174            295,   // 55
+ 175            284,   // 56
+ 176            274,   // 57
+ 177            264,   // 58
+ 178            254,   // 59
+ 179            245,   // 60
+ 180            236,   // 61
+ 181            228,   // 62
+ 182            220,   // 63
+ 183            212,   // 64
+ 184            205,   // 65
+ 185            198,   // 66
+ 186            191,   // 67
+ 187            184,   // 68
+ 188            178,   // 69
+ 189            172,   // 70
+ 190            166,   // 71
+ 191            160,   // 72
+ 192            155,   // 73
+ 193            150,   // 74
+ 194            145,   // 75
+ 195            140,   // 76
+ 196            135,   // 77
+ 197            131,   // 78
+ 198            126,   // 79
+ 199            122,   // 80
+ 200            118,   // 81
+ 201            115,   // 82
+ 202            111,   // 83
+ 203            107,   // 84
+ 204            104,   // 85
+ 205            101,   // 86
+ 206            97,    // 87
+ 207            94,    // 88
+ 208            91,    // 89
+ 209            89,    // 90
+ 210            86,    // 91
+ 211            83,    // 92
+ 212            81,    // 93
+ 213            78,    // 94
+ 214            76,    // 95
+ 215            74,    // 96
+ 216            71,    // 97
+ 217            69,    // 98
+ 218            67,    // 99
+ 219            65,    // 100
+ 220            63,    // 101
+ 221            61,    // 102
+ 222            60,    // 103
+ 223            58,    // 104
+ 224            56,    // 105
+ 225            55,    // 106
+ 226            53,    // 107
+ 227            52,    // 108
+ 228            50,    // 109
+ 229            49,    // 110
+ 230            47,    // 111
+ 231            46,    // 112
+ 232            45,    // 113
+ 233            43,    // 114
+C51 COMPILER V9.60.7.0   MAIN                                                              08/07/2024 17:35:08 PAGE 5   
+
+ 234            42,    // 115
+ 235            41,    // 116
+ 236            40,    // 117
+ 237            39,    // 118
+ 238            38,    // 119
+ 239            37,    // 120
+ 240            36,    // 121
+ 241            35,    // 122
+ 242            34,    // 123
+ 243            33,    // 124
+ 244            32,    // 125
+ 245          };
+ 246          
+ 247          int search_temp(float rst_Rx100){
+ 248   1        
+ 249   1        int i, min_index = 0; // 距离最近的电阻值的元素索引 
+ 250   1        
+ 251   1        //设置一个最小距离用以记录
+ 252   1        float min_distance = abs(rst_Rx100 - temp_table[0]);//设置一个最小值
+ 253   1        
+ 254   1        //计算数组长度
+ 255   1        int len = sizeof(temp_table) / sizeof(temp_table[0]);
+ 256   1        
+ 257   1        
+ 258   1        for(i = 0; i < len; i++){
+ 259   2          
+ 260   2          float distance = abs(rst_Rx100 - temp_table[i]);//计算的距离值
+ 261   2          
+ 262   2          //有距离更近的数值
+ 263   2            if(min_distance > distance){
+ 264   3              min_distance = distance;
+ 265   3              min_index = i;
+ 266   3            }
+ 267   2          
+ 268   2        
+ 269   2        }
+ 270   1        printf("%d",min_index);
+ 271   1        
+ 272   1        return min_index;
+ 273   1      }
+ 274          
+ 275          void main() {
+ 276   1      
+ 277   1          u16 adc_value ;
+ 278   1          float rst_V,rst_R;
+ 279   1        int rst_T;
+ 280   1          EAXSFR();
+ 281   1      
+ 282   1          GPIO_config();
+ 283   1          UART_config();
+ 284   1          ADC_config();
+ 285   1      
+ 286   1          EA = 1;
+ 287   1      
+ 288   1      
+ 289   1          while(1) {
+ 290   2      //  1、通过ADC读取热敏电阻的电压值
+ 291   2            // - 读取12通道的ADC值
+ 292   2            adc_value =  Get_ADCResult(ADC_CH12);
+ 293   2            // - 计算得到电压值 adc_value = 4096 * (rst_V / 2.5)
+ 294   2            rst_V = adc_value * 2.5 / 4096;//输入电压
+ 295   2      
+C51 COMPILER V9.60.7.0   MAIN                                                              08/07/2024 17:35:08 PAGE 6   
+
+ 296   2      
+ 297   2      //2、通过欧姆定律计算得到热敏电阻阻值
+ 298   2            //R6
+ 299   2            rst_R = 10 * rst_V / (3.3 - rst_V);
+ 300   2      
+ 301   2      //3、根据阻值表得到温度值
+ 302   2            rst_T = search_temp(rst_R * 100) - 55;
+ 303   2      
+ 304   2      
+ 305   2      
+ 306   2            printf("ADC:%dV 输入电压为：%.3fV\n阻值:%.3fKΩ rst_T:%d°C",adc_value,rst_V,rst_R,rst_T);
+ 307   2      
+ 308   2      
+ 309   2      
+ 310   2      
+ 311   2              delay_ms(250);
+ 312   2              delay_ms(250);
+ 313   2      
+ 314   2          }
+ 315   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    533    ----
+   CONSTANT SIZE    =    416    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      44
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

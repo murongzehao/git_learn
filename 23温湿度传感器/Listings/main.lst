@@ -1,0 +1,212 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              08/14/2024 10:28:28 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "config.h"
+   2          #include "Delay.h"
+   3          #include "GPIO.h"
+   4          #include "NVIC.h"
+   5          #include "UART.h"
+   6          #include "switch.h"
+   7          
+   8          #define DHT P46
+   9          
+  10          /*
+  11          读取温湿度传感器DHT11温湿度值
+  12          使用UART1收到任何数据时，读数据
+  13          
+  14          
+  15          
+  16          */
+  17          /******************* IO配置函数 *******************/
+  18          void  GPIO_config(void)
+  19          {
+  20   1          GPIO_InitTypeDef  GPIO_InitStructure;   //结构定义
+  21   1      
+  22   1          GPIO_InitStructure.Pin  = GPIO_Pin_6;   //指定要初始化的IO, GPIO_Pin_0 ~ GPIO_Pin_7
+  23   1          GPIO_InitStructure.Mode = GPIO_PullUp;      //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+  24   1          GPIO_Inilize(GPIO_P4,&GPIO_InitStructure);  //初始化
+  25   1      }
+  26          /***************  串口初始化函数 *****************/
+  27          void  UART_config(void)
+  28          {
+  29   1          COMx_InitDefine   COMx_InitStructure;         //结构定义
+  30   1      
+  31   1          COMx_InitStructure.UART_Mode      = UART_8bit_BRTx; //模式, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,U
+             -ART_9bit_BRTx
+  32   1          COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;     //选择波特率发生器, BRT_Timer1, BRT_Timer2 (注意: 串
+             -口2固定使用BRT_Timer2)
+  33   1          COMx_InitStructure.UART_BaudRate  = 115200ul;       //波特率, 一般 110 ~ 115200
+  34   1          COMx_InitStructure.UART_RxEnable  = ENABLE;         //接收允许,   ENABLE或DISABLE
+  35   1          COMx_InitStructure.BaudRateDouble = DISABLE;        //波特率加倍, ENABLE或DISABLE
+  36   1          UART_Configuration(UART1, &COMx_InitStructure);     //初始化串口1 UART1,UART2,UART3,UART4
+  37   1      
+  38   1          NVIC_UART1_Init(ENABLE,Priority_1);   //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,
+             -Priority_2,Priority_3
+  39   1      
+  40   1          UART1_SW(UART1_SW_P30_P31);   //UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
+  41   1      }
+  42          
+  43          void Delay1us(void) //@24.000MHz
+  44          {
+  45   1          unsigned char data i;
+  46   1      
+  47   1          i = 5;
+  48   1          while (--i);
+  49   1      }
+  50          
+C51 COMPILER V9.60.7.0   MAIN                                                              08/14/2024 10:28:28 PAGE 2   
+
+  51          void delay1_us(void)  //@24.000MHz
+  52          {
+  53   1          NOP12();
+  54   1      }
+  55          
+  56          // 读取DHT11数据(千万不要随意打日志，会耗时)
+  57          
+  58          #define wait_level_change(level,min,max,desc)                          \
+  59              cnt = 0;                                                           \
+  60              while( DHT == level) {                                             \
+  61                  delay1_us();                                                   \
+  62                  cnt++;                                                         \
+  63                                                                                 \
+  64              }                                                                  \
+  65              if( cnt <min || cnt > max) {                                      \
+  66                  printf("err:时间[%dus],不满足%s[%d,%d]\n",          \
+  67                         (int)cnt,desc,(int)min,(int)max);                       \
+  68                                                                                 \
+  69              }                                                                  \
+  70          
+  71          char on_read() {
+  72   1          float humidity,temperature;
+  73   1          char i,j;
+  74   1          u8 dat[5] = {0};//容器存放40bit数据，也就是40 / 8 = 5个字节
+  75   1          u16 cnt = 0;//计时器，每+1，过了1us，一定要初始化为0
+  76   1          printf("read\n");
+  77   1      
+  78   1          //1.主机起始信号（拉低10~30ms）
+  79   1          DHT = 0;
+  80   1          delay_ms(20);
+  81   1          //然后拉高
+  82   1          DHT = 1;
+  83   1      
+  84   1          //2.等待主机释放总线(10~35ms)
+  85   1          cnt = 0;
+  86   1          while(DHT == 1 && cnt < 40) {
+  87   2              delay1_us();
+  88   2              cnt++;
+  89   2      
+  90   2          }
+  91   1          if( cnt < 8 || cnt > 37) {
+  92   2              printf("err:时间[%dus]不满足主机释放总线时间[%d,%d]\n",
+  93   2                     (int)cnt, (int)8, (int)37);
+  94   2              return -1;
+  95   2          }
+  96   1      
+  97   1          //3.从机响应低电平时间，[78,88]us,当前0，直到1，结束循环
+  98   1          wait_level_change(0,78,88,"响应低电平时间");
+  99   1      
+ 100   1          // 4. 响应高电平时间，87us [80, 92]us, 当前1，直到0 结束循环
+ 101   1          wait_level_change(1,80,92,"响应高电平时间");
+ 102   1      
+ 103   1          for(i = 0; i < 5; i++ ) {
+ 104   2              //高位先输出，也就是第7位先输出、
+ 105   2              for(j = 7; j>= 0; j--) {
+ 106   3                  //5.数据位：低电平时间54us[50,58]us,当前0，直到1，结束循环
+ 107   3                  wait_level_change(0,48,64,"DATA信号低电平时间");
+ 108   3      
+ 109   3                  //6.数据位：0的高电平时间[23,27],1的高电平时间[68,74],当前1，直到0，结束循环
+ 110   3      
+ 111   3                  wait_level_change(1,23,74,"DATA信号低电平时间");
+ 112   3      
+C51 COMPILER V9.60.7.0   MAIN                                                              08/14/2024 10:28:28 PAGE 3   
+
+ 113   3                  if( cnt > 50 ) { //高电平时间较长，是1
+ 114   4                      //初始化默认i是0 0 0 0    0 0 0 0
+ 115   4                      //这个判断是用来判断索引i字节的第j号位是1的话就放进去
+ 116   4                      dat[i] |= (1 << j);
+ 117   4                  }
+ 118   3      
+ 119   3              }
+ 120   2      
+ 121   2          }
+ 122   1          //主机释放总线
+ 123   1          DHT = 1;
+ 124   1          printf("cnt:%d\n",cnt);
+ 125   1          for( i = 0; i < 5; i++) {
+ 126   2              printf("%d ",(int)dat[i]);
+ 127   2          }
+ 128   1          printf("\n");
+ 129   1      
+ 130   1          //校验数据
+ 131   1          if(dat[0] +dat[1] + dat[2] +dat[3] != dat[4]) {
+ 132   2              printf("check failure!\n");
+ 133   2          }
+ 134   1          //取出湿度的整数部分 + 小数部分 * 0.1
+ 135   1          humidity = dat[0] + dat[1] * 0.1f;
+ 136   1      
+ 137   1          //取出温度的整数部分 + 小数部分(低7位) * 0.1
+ 138   1          temperature = dat[2] +(dat[3] & 0x7f) * 0.1f;
+ 139   1      
+ 140   1                        //温度小数部分的最高位：0表示正温度，1表示负温度
+ 141   1          if(dat[3] >> 7){
+ 142   2              temperature *= -1;
+ 143   2          }
+ 144   1          printf("湿度：%.1f%%  温度：%.1f℃\n",humidity,temperature);
+ 145   1      
+ 146   1          return 0 ;
+ 147   1      }
+ 148          
+ 149          void on_uart1_recv() {
+ 150   1      
+ 151   1          on_read();
+ 152   1      }
+ 153          
+ 154          void main() {
+ 155   1          EAXSFR();
+ 156   1          GPIO_config();
+ 157   1          UART_config();
+ 158   1      
+ 159   1      
+ 160   1          EA = 1;
+ 161   1      
+ 162   1          while(1) {
+ 163   2              //调用串口接收数据判断
+ 164   2              //如果 RX_TimeOut 大于 0，表示接收超时计时器正在运行。
+ 165   2              //检查递减后的 RX_TimeOut 是否等于 0。
+ 166   2              //如果等于 0，表示超时计时器已经倒计时完成。说明已经接收完成
+ 167   2              if(COM1.RX_TimeOut > 0 && --COM1.RX_TimeOut == 0) {
+ 168   3                  //如果 RX_Cnt 大于 0，表示接收到的数据字节数大于 0。
+ 169   3                  if(COM1.RX_Cnt > 0) {
+ 170   4                      on_uart1_recv();
+ 171   4                  }
+ 172   3                  //清除数据
+ 173   3                  COM1.RX_Cnt = 0;
+ 174   3              }
+C51 COMPILER V9.60.7.0   MAIN                                                              08/14/2024 10:28:28 PAGE 4   
+
+ 175   2      
+ 176   2              delay_ms(10);
+ 177   2          }
+ 178   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    904    ----
+   CONSTANT SIZE    =    195    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      28
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

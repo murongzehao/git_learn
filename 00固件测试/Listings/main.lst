@@ -1,0 +1,121 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              08/09/2024 15:54:36 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "config.h"
+   2          #include "GPIO.H"
+   3          #include "UART.h"
+   4          #include "Delay.h"
+   5          #include "Timer.h"
+   6          #include "switch.h"
+   7          #include "NVIC.h"
+   8          
+   9          
+  10          #define LED_SW   P45
+  11          #define LED2     P26
+  12          #define LED4     P14
+  13          #define LED6     P22
+  14          #define LED8     P20
+  15          
+  16          /******************* IO配置函数 *******************/
+  17          void  GPIO_config(void)
+  18          {
+  19   1          GPIO_InitTypeDef  GPIO_InitStructure;   //结构定义
+  20   1      
+  21   1          GPIO_InitStructure.Pin  = GPIO_Pin_5;   //指定要初始化的IO, GPIO_Pin_0 ~ GPIO_Pin_7
+  22   1          GPIO_InitStructure.Mode = GPIO_OUT_PP;      //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+  23   1          GPIO_Inilize(GPIO_P4,&GPIO_InitStructure);  //初始化
+  24   1      
+  25   1      
+  26   1          GPIO_InitStructure.Pin  = GPIO_Pin_6 | GPIO_Pin_2 | GPIO_Pin_0;   //指定要初始化的IO, GPIO_Pin_0 ~ GPIO
+             -_Pin_7
+  27   1          GPIO_InitStructure.Mode = GPIO_OUT_PP;      //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+  28   1          GPIO_Inilize(GPIO_P2,&GPIO_InitStructure);  //初始化
+  29   1      
+  30   1          GPIO_InitStructure.Pin  = GPIO_Pin_4;   //指定要初始化的IO, GPIO_Pin_0 ~ GPIO_Pin_7
+  31   1          GPIO_InitStructure.Mode = GPIO_OUT_PP;      //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+  32   1          GPIO_Inilize(GPIO_P1,&GPIO_InitStructure);  //初始化
+  33   1      
+  34   1          P3_MODE_IO_PU(GPIO_Pin_0 | GPIO_Pin_1);
+  35   1      }
+  36          
+  37          /***************  串口初始化函数 *****************/
+  38          void  UART_config(void)
+  39          {
+  40   1          COMx_InitDefine   COMx_InitStructure;         //结构定义
+  41   1      
+  42   1          COMx_InitStructure.UART_Mode      = UART_8bit_BRTx; //模式, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,U
+             -ART_9bit_BRTx
+  43   1          COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;     //选择波特率发生器, BRT_Timer1, BRT_Timer2 (注意: 串
+             -口2固定使用BRT_Timer2)
+  44   1          COMx_InitStructure.UART_BaudRate  = 115200ul;       //波特率, 一般 110 ~ 115200
+  45   1          COMx_InitStructure.UART_RxEnable  = ENABLE;         //接收允许,   ENABLE或DISABLE
+  46   1          COMx_InitStructure.BaudRateDouble = DISABLE;        //波特率加倍, ENABLE或DISABLE
+  47   1          UART_Configuration(UART1, &COMx_InitStructure);     //初始化串口1 UART1,UART2,UART3,UART4
+  48   1      
+C51 COMPILER V9.60.7.0   MAIN                                                              08/09/2024 15:54:36 PAGE 2   
+
+  49   1          NVIC_UART1_Init(ENABLE,Priority_1);   //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,
+             -Priority_2,Priority_3
+  50   1      
+  51   1          UART1_SW(UART1_SW_P30_P31);   //UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
+  52   1      }
+  53          
+  54          void main() {
+  55   1          u8 i;
+  56   1          GPIO_config();
+  57   1          UART_config();
+  58   1      
+  59   1          EA = 1;
+  60   1      
+  61   1          LED_SW = 0;
+  62   1          LED2 = LED4  = LED6  = LED8 = 1;
+  63   1      
+  64   1          while(1) {
+  65   2              for( i = 1; i <= 8; i++) {
+  66   3                  if(i == 2) LED2 = 0;
+  67   3                  else if(i == 4)  LED4 = 0;
+  68   3                  else if(i == 6)  LED6 = 0;
+  69   3                  else if(i == 8)  LED8 = 0;
+  70   3                delay_ms(100);
+  71   3              }
+  72   2              delay_ms(250);
+  73   2              delay_ms(250);
+  74   2      
+  75   2      
+  76   2              LED2 = LED4  = LED6  = LED8 = 1;
+  77   2      
+  78   2              delay_ms(250);
+  79   2              delay_ms(250);
+  80   2      
+  81   2      
+  82   2      
+  83   2      
+  84   2      
+  85   2      
+  86   2      
+  87   2          }
+  88   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    202    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      12
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "stc8h_pwm.h": "c",
+        "switch.h": "c",
+        "delay.h": "c"
+    }
+}

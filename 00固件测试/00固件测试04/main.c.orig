@@ -1,0 +1,25 @@
+#include "config.h"
+#include "GPIO.h"
+#include "NIXIE.h"
+#include "delay.h"
+#include "NTC.H"
+#include "ADC.h"
+
+
+int arr[] = {2,5};
+int T_rst;
+void main() {
+    u8 i;
+EAXSFR();
+    NIXIE_init();
+    NTC_init();
+
+    T_rst = NTC_get_temperature();
+
+    while(1) {
+        for( i = 0; i < 8; i++) {
+            NIXIE_display(arr[i],i);
+        }
+
+    }
+}

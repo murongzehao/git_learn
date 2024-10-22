@@ -1,0 +1,6 @@
+".\Objects\main.obj",
+".\Objects\STC8G_H_GPIO.obj",
+".\Objects\STC8G_H_Delay.obj" 
+TO ".\Objects\project01" 
+PRINT(".\Listings\project01.m51") RAMSIZE(256) 
+DISABLEWARNING (16,15) 

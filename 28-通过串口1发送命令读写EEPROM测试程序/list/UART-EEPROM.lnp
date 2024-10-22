@@ -1,0 +1,10 @@
+".\list\main.obj",
+".\list\Delay.obj",
+".\list\EEPROM.obj",
+".\list\GPIO.obj",
+".\list\NVIC.obj",
+".\list\UART.obj",
+".\list\UART_Isr.obj" 
+TO ".\list\UART-EEPROM" 
+
+PRINT(".\list\UART-EEPROM.map") REMOVEUNUSED 

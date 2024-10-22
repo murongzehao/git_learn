@@ -1,0 +1,108 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              08/09/2024 15:13:02 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "config.h"
+   2          #include  "GPIO.h"
+   3          #include  "UART.h"
+   4          #include  "Delay.h"
+   5          #include  "NVIC.h"
+   6          #include  "Switch.h"
+   7          
+   8          void  GPIO_config(void)
+   9          {
+  10   1          GPIO_InitTypeDef  GPIO_InitStructure;   //结构定义，定义一个结构体变量
+  11   1      
+  12   1          GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1;    //指定要初始化的IO, GPIO_Pin_0 就是0号位，GPIO_Pin
+             -_1 是1号位
+  13   1          GPIO_InitStructure.Mode = GPIO_PullUp;  //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,GPI
+             -O_OUT_PP
+  14   1          GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);  //初始化，符号位P3的位地址0，1
+  15   1      }
+  16          
+  17          /***************  串口初始化函数 *****************/
+  18          void  UART_config(void)
+  19          {
+  20   1          COMx_InitDefine   COMx_InitStructure;         //结构定义
+  21   1      
+  22   1          COMx_InitStructure.UART_Mode      = UART_8bit_BRTx; //模式, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,U
+             -ART_9bit_BRTx
+  23   1          COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;     //选择波特率发生器, BRT_Timer1, BRT_Timer2 (注意: 串
+             -口2固定使用BRT_Timer2)
+  24   1          COMx_InitStructure.UART_BaudRate  = 115200ul;     //波特率, 一般 110 ~ 115200
+  25   1          COMx_InitStructure.UART_RxEnable  = ENABLE;       //接收允许,   ENABLE或DISABLE
+  26   1          COMx_InitStructure.BaudRateDouble = DISABLE;      //波特率加倍, ENABLE或DISABLE
+  27   1          UART_Configuration(UART1, &COMx_InitStructure);   //初始化串口1 UART1,UART2,UART3,UART4
+  28   1          NVIC_UART1_Init(ENABLE,Priority_1);   //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,
+             -Priority_2,Priority_3
+  29   1      
+  30   1          UART1_SW(UART1_SW_P30_P31);   //UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
+  31   1      }
+  32          
+  33          void on_uart1_recv(){
+  34   1        int i = 0;
+  35   1        // COM1.RX_Cnt : UART1 收到的数据个数 unsigned  char MAX:255
+  36   1        for(i=0; i<COM1.RX_Cnt; i++){
+  37   2          TX1_write2buff(RX1_Buffer[i] + 1);//收到的数据原样返回
+  38   2        }
+  39   1      
+  40   1      }
+  41          
+  42          
+  43          
+  44          void main() {
+  45   1          int i = 1;
+  46   1      
+  47   1          GPIO_config();
+  48   1          UART_config();
+  49   1      
+C51 COMPILER V9.60.7.0   MAIN                                                              08/09/2024 15:13:02 PAGE 2   
+
+  50   1          //开启全局中断
+  51   1          EA = 1;
+  52   1          //要发送文件，需要用到UART.H，里面有定义发送文件的方法
+  53   1      
+  54   1          TX1_write2buff(0X23);//发送字节
+  55   1          PrintString1("PrintString1\n");
+  56   1          printf("printf-> %s : %d\n","Hello",(int)123);//打印数字要强转成int
+  57   1      
+  58   1      
+  59   1      
+  60   1      
+  61   1          while(1) {
+  62   2              //循环在这里判断并处理接收到的数据
+  63   2              if(COM1.RX_TimeOut > 0 &&  --COM1.RX_TimeOut == 0)//RX_TimeOut 接收超时
+  64   2              {
+  65   3                  if(COM1.RX_Cnt > 0)//判断是否有数据
+  66   3                  {
+  67   4                      //收到数据了
+  68   4                      on_uart1_recv();
+  69   4                  }
+  70   3                  //清零数据计数值
+  71   3                  COM1.RX_Cnt = 0;
+  72   3              }
+  73   2      
+  74   2          }
+  75   1      
+  76   1      }
+  77          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    189    ----
+   CONSTANT SIZE    =     38    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      15
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,367 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              08/09/2024 20:53:16 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "config.h"
+   2          #include "GPIO.H"
+   3          #include "UART.h"
+   4          #include "Delay.h"
+   5          #include "Timer.h"
+   6          #include "switch.h"
+   7          #include "NVIC.h"
+   8          #include "adc.h"
+   9          
+  10          #define LED_SW   P45
+  11          #define LED2     P26
+  12          #define LED4     P14
+  13          #define LED6     P22
+  14          #define LED8     P20
+  15          #define LED1     P27
+  16          #define LED3     P15
+  17          #define LED5     P23
+  18          #define LED7     P21
+  19          
+  20          /******************* IO配置函数 *******************/
+  21          void  GPIO_config(void)
+  22          {
+  23   1          GPIO_InitTypeDef  GPIO_InitStructure;   //结构定义
+  24   1      
+  25   1          GPIO_InitStructure.Pin  = GPIO_Pin_5;   //指定要初始化的IO, GPIO_Pin_0 ~ GPIO_Pin_7
+  26   1          GPIO_InitStructure.Mode = GPIO_OUT_PP;      //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+  27   1          GPIO_Inilize(GPIO_P4,&GPIO_InitStructure);  //初始化
+  28   1      
+  29   1      
+  30   1          GPIO_InitStructure.Pin  = GPIO_Pin_6 | GPIO_Pin_2 | GPIO_Pin_0 | GPIO_Pin_7 | GPIO_Pin_3 | GPIO_Pin_1;
+             -    //指定要初始化的IO, GPIO_Pin_0 ~ GPIO_Pin_7
+  31   1          GPIO_InitStructure.Mode = GPIO_OUT_PP;      //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+  32   1          GPIO_Inilize(GPIO_P2,&GPIO_InitStructure);  //初始化
+  33   1      
+  34   1          GPIO_InitStructure.Pin  = GPIO_Pin_4 | GPIO_Pin_5;    //指定要初始化的IO, GPIO_Pin_0 ~ GPIO_Pin_7
+  35   1          GPIO_InitStructure.Mode = GPIO_OUT_PP;      //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+  36   1          GPIO_Inilize(GPIO_P1,&GPIO_InitStructure);  //初始化
+  37   1      
+  38   1          P3_MODE_IO_PU(GPIO_Pin_0 | GPIO_Pin_1);
+  39   1      }
+  40          
+  41          /***************  串口初始化函数 *****************/
+  42          void  UART_config(void)
+  43          {
+  44   1          COMx_InitDefine   COMx_InitStructure;         //结构定义
+  45   1      
+  46   1          COMx_InitStructure.UART_Mode      = UART_8bit_BRTx; //模式, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,U
+             -ART_9bit_BRTx
+  47   1          COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;     //选择波特率发生器, BRT_Timer1, BRT_Timer2 (注意: 串
+             -口2固定使用BRT_Timer2)
+  48   1          COMx_InitStructure.UART_BaudRate  = 115200ul;       //波特率, 一般 110 ~ 115200
+C51 COMPILER V9.60.7.0   MAIN                                                              08/09/2024 20:53:16 PAGE 2   
+
+  49   1          COMx_InitStructure.UART_RxEnable  = ENABLE;         //接收允许,   ENABLE或DISABLE
+  50   1          COMx_InitStructure.BaudRateDouble = DISABLE;        //波特率加倍, ENABLE或DISABLE
+  51   1          UART_Configuration(UART1, &COMx_InitStructure);     //初始化串口1 UART1,UART2,UART3,UART4
+  52   1      
+  53   1          NVIC_UART1_Init(ENABLE,Priority_1);   //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,
+             -Priority_2,Priority_3
+  54   1      
+  55   1          UART1_SW(UART1_SW_P30_P31);   //UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
+  56   1      }
+  57          
+  58          /******************* AD配置函数 *******************/
+  59          void  ADC_config(void)
+  60          {
+  61   1          ADC_InitTypeDef   ADC_InitStructure;    //结构定义
+  62   1      
+  63   1          ADC_InitStructure.ADC_SMPduty   = 31;   //ADC 模拟信号采样时间控制, 0~31（注意： SMPDUTY 一定不能设置小
+             -于 10）
+  64   1          ADC_InitStructure.ADC_CsSetup   = 0;    //ADC 通道选择时间控制 0(默认),1
+  65   1          ADC_InitStructure.ADC_CsHold    = 1;    //ADC 通道选择保持时间控制 0,1(默认),2,3
+  66   1          ADC_InitStructure.ADC_Speed     = ADC_SPEED_2X16T;    //设置 ADC 工作时钟频率 ADC_SPEED_2X1T~ADC_SPEED_2
+             -X16T
+  67   1          ADC_InitStructure.ADC_AdjResult = ADC_RIGHT_JUSTIFIED;  //ADC结果调整,  ADC_LEFT_JUSTIFIED,ADC_RIGHT_JUS
+             -TIFIED
+  68   1          ADC_Inilize(&ADC_InitStructure);    //初始化
+  69   1          ADC_PowerControl(ENABLE);       //ADC电源开关, ENABLE或DISABLE
+  70   1          NVIC_ADC_Init(DISABLE,Priority_0);    //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,P
+             -riority_2,Priority_3
+  71   1      }
+  72          
+  73          u16 code temp_table[]= {
+  74              58354, // -55
+  75              55464, // -54
+  76              52698, // -53
+  77              50048, // -52
+  78              47515, // -51
+  79              45097, // -50
+  80              42789, // -49
+  81              40589, // -48
+  82              38492, // -47
+  83              36496, // -46
+  84              34597, // -45
+  85              32791, // -44
+  86              31075, // -43
+  87              29444, // -42
+  88              27896, // -41
+  89              26427, // -40
+  90              25034, // -39
+  91              23713, // -38
+  92              22460, // -37
+  93              21273, // -36
+  94              20148, // -35
+  95              19083, // -34
+  96              18075, // -33
+  97              17120, // -32
+  98              16216, // -31
+  99              15361, // -30
+ 100              14551, // -29
+ 101              13785, // -28
+ 102              13061, // -27
+ 103              12376, // -26
+ 104              11728, // -25
+ 105              11114, // -24
+C51 COMPILER V9.60.7.0   MAIN                                                              08/09/2024 20:53:16 PAGE 3   
+
+ 106              10535, // -23
+ 107              9986,  // -22
+ 108              9468,  // -21
+ 109              8977,  // -20
+ 110              8513,  // -19
+ 111              8075,  // -18
+ 112              7660,  // -17
+ 113              7267,  // -16
+ 114              6896,  // -15
+ 115              6545,  // -14
+ 116              6212,  // -13
+ 117              5898,  // -12
+ 118              5601,  // -11
+ 119              5319,  // -10
+ 120              5053,  // -9
+ 121              4801,  // -8
+ 122              4562,  // -7
+ 123              4336,  // -6
+ 124              4122,  // -5
+ 125              3920,  // -4
+ 126              3728,  // -3
+ 127              3546,  // -2
+ 128              3374,  // -1
+ 129              3211,  // 0
+ 130              3057,  // 1
+ 131              2910,  // 2
+ 132              2771,  // 3
+ 133              2639,  // 4
+ 134              2515,  // 5
+ 135              2396,  // 6
+ 136              2284,  // 7
+ 137              2177,  // 8
+ 138              2076,  // 9
+ 139              1978,  // 10
+ 140              1889,  // 11
+ 141              1802,  // 12
+ 142              1720,  // 13
+ 143              1642,  // 14
+ 144              1568,  // 15
+ 145              1497,  // 16
+ 146              1430,  // 17
+ 147              1366,  // 18
+ 148              1306,  // 19
+ 149              1248,  // 20
+ 150              1193,  // 21
+ 151              1141,  // 22
+ 152              1092,  // 23
+ 153              1044,  // 24
+ 154              1000,  // 25
+ 155              957,   // 26
+ 156              916,   // 27
+ 157              877,   // 28
+ 158              840,   // 29
+ 159              805,   // 30
+ 160              771,   // 31
+ 161              739,   // 32
+ 162              709,   // 33
+ 163              679,   // 34
+ 164              652,   // 35
+ 165              625,   // 36
+ 166              600,   // 37
+ 167              576,   // 38
+C51 COMPILER V9.60.7.0   MAIN                                                              08/09/2024 20:53:16 PAGE 4   
+
+ 168              552,   // 39
+ 169              530,   // 40
+ 170              509,   // 41
+ 171              489,   // 42
+ 172              470,   // 43
+ 173              452,   // 44
+ 174              434,   // 45
+ 175              417,   // 46
+ 176              401,   // 47
+ 177              386,   // 48
+ 178              371,   // 49
+ 179              358,   // 50
+ 180              344,   // 51
+ 181              331,   // 52
+ 182              318,   // 53
+ 183              306,   // 54
+ 184              295,   // 55
+ 185              284,   // 56
+ 186              274,   // 57
+ 187              264,   // 58
+ 188              254,   // 59
+ 189              245,   // 60
+ 190              236,   // 61
+ 191              228,   // 62
+ 192              220,   // 63
+ 193              212,   // 64
+ 194              205,   // 65
+ 195              198,   // 66
+ 196              191,   // 67
+ 197              184,   // 68
+ 198              178,   // 69
+ 199              172,   // 70
+ 200              166,   // 71
+ 201              160,   // 72
+ 202              155,   // 73
+ 203              150,   // 74
+ 204              145,   // 75
+ 205              140,   // 76
+ 206              135,   // 77
+ 207              131,   // 78
+ 208              126,   // 79
+ 209              122,   // 80
+ 210              118,   // 81
+ 211              115,   // 82
+ 212              111,   // 83
+ 213              107,   // 84
+ 214              104,   // 85
+ 215              101,   // 86
+ 216              97,    // 87
+ 217              94,    // 88
+ 218              91,    // 89
+ 219              89,    // 90
+ 220              86,    // 91
+ 221              83,    // 92
+ 222              81,    // 93
+ 223              78,    // 94
+ 224              76,    // 95
+ 225              74,    // 96
+ 226              71,    // 97
+ 227              69,    // 98
+ 228              67,    // 99
+ 229              65,    // 100
+C51 COMPILER V9.60.7.0   MAIN                                                              08/09/2024 20:53:16 PAGE 5   
+
+ 230              63,    // 101
+ 231              61,    // 102
+ 232              60,    // 103
+ 233              58,    // 104
+ 234              56,    // 105
+ 235              55,    // 106
+ 236              53,    // 107
+ 237              52,    // 108
+ 238              50,    // 109
+ 239              49,    // 110
+ 240              47,    // 111
+ 241              46,    // 112
+ 242              45,    // 113
+ 243              43,    // 114
+ 244              42,    // 115
+ 245              41,    // 116
+ 246              40,    // 117
+ 247              39,    // 118
+ 248              38,    // 119
+ 249              37,    // 120
+ 250              36,    // 121
+ 251              35,    // 122
+ 252              34,    // 123
+ 253              33,    // 124
+ 254              32,    // 125
+ 255          };
+ 256          
+ 257          
+ 258          
+ 259          int search_temp() {
+ 260   1          float V_c,R_c;
+ 261   1          int T_c;
+ 262   1          u16 adc_value;
+ 263   1          u8 i,min_index;
+ 264   1      
+ 265   1          float min_distance = abs(R_c * 100 - temp_table[0]);
+ 266   1      
+ 267   1          int len = sizeof(temp_table) / sizeof(temp_table[0]);
+ 268   1      
+ 269   1          for( i = 0; i < len; i++) {
+ 270   2              float distance = abs(R_c * 100 - temp_table[i]);
+ 271   2              if( min_distance > distance) {
+ 272   3                  min_distance = distance;
+ 273   3                  min_index = i;
+ 274   3              }
+ 275   2      
+ 276   2          }
+ 277   1          //通过ADC引脚获取电压值
+ 278   1          adc_value = Get_ADCResult(ADC_CH12);
+ 279   1          //通过ADC的电压求出采样电压
+ 280   1          V_c = adc_value * 2.5 / 4096;
+ 281   1          //通过采样电压求出热敏阻值
+ 282   1          R_c = V_c * 10 /(3.3 - V_c);
+ 283   1          //通过阻值表算出温度
+ 284   1          T_c = min_index - 55;
+ 285   1      
+ 286   1          return T_c;
+ 287   1      }
+ 288          
+ 289          void main() {
+ 290   1          int T_c,t_c;
+ 291   1      
+C51 COMPILER V9.60.7.0   MAIN                                                              08/09/2024 20:53:16 PAGE 6   
+
+ 292   1          EAXSFR();
+ 293   1          GPIO_config();
+ 294   1          UART_config();
+ 295   1          ADC_config();
+ 296   1      
+ 297   1      
+ 298   1      
+ 299   1      
+ 300   1          EA = 1;
+ 301   1      
+ 302   1          LED_SW = 0;
+ 303   1      
+ 304   1          delay_ms(250);
+ 305   1          t_c = search_temp();
+ 306   1      
+ 307   1          while(1) {
+ 308   2              T_c = search_temp();
+ 309   2      
+ 310   2              delay_ms(250);
+ 311   2              delay_ms(250);
+ 312   2              if(T_c >= t_c + 2) {
+ 313   3                  LED1 = LED2 = LED3  = LED4  = LED5 = LED6  = LED7  = LED8 = 0;
+ 314   3                  delay_ms(10);
+ 315   3                  LED1 = LED2 = LED3  = LED4  = LED5 = LED6  = LED7  = LED8 = 1;
+ 316   3                  delay_ms(10);
+ 317   3              }
+ 318   2      
+ 319   2              printf("何泽豪  %d度\n",T_c);
+ 320   2              printf("何泽豪  %d度\n",t_c);
+ 321   2          }
+ 322   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    632    ----
+   CONSTANT SIZE    =    376    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      40
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

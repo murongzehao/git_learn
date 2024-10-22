@@ -1,0 +1,69 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              08/15/2024 21:31:15 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "config.h"
+   2          #include "delay.h"
+   3          #include "gpio.h"
+   4          
+   5          #define IO1  P20
+   6          #define IO2  P21
+   7          #define IO3  P22
+   8          #define IO4  P23
+   9          #define IO5  P26
+  10          
+  11          #define PIN1 GPIO_Pin_0
+  12          #define PIN2 GPIO_Pin_1
+  13          #define PIN3 GPIO_Pin_2
+  14          #define PIN4 GPIO_Pin_3
+  15          #define PIN5 GPIO_Pin_6
+  16          
+  17          void GPIO_Config(void){
+  18   1      P2_MODE_IN_HIZ(PIN1 | PIN2 | PIN3 | PIN4 | PIN5);
+  19   1      
+  20   1      }
+  21          
+  22          #define OUT1(LEVEL) P2_MODE_IO_PU(PIN1); IO1=LEVEL;
+  23          #define OUT2(LEVEL) P2_MODE_IO_PU(PIN2); IO2=LEVEL;
+  24          #define OUT3(LEVEL) P2_MODE_IO_PU(PIN3); IO3=LEVEL;
+  25          #define OUT4(LEVEL) P2_MODE_IO_PU(PIN4); IO4=LEVEL;
+  26          #define OUT5(LEVEL) P2_MODE_IO_PU(PIN5); IO5=LEVEL;
+  27          #define HIZ(pin)    P2_MODE_IN_HIZ(pin)
+  28          
+  29          void main(){
+  30   1        GPIO_Config();
+  31   1        
+  32   1        EA = 1;
+  33   1        
+  34   1        OUT2(1);
+  35   1        OUT3(1);
+  36   1        OUT4(0);  
+  37   1        
+  38   1        HIZ(PIN1);
+  39   1        HIZ(PIN5);
+  40   1      
+  41   1      
+  42   1      while(1);
+  43   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     50    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+C51 COMPILER V9.60.7.0   MAIN                                                              08/15/2024 21:31:15 PAGE 2   
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

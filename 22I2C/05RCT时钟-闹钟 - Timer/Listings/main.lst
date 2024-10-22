@@ -1,0 +1,154 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              08/14/2024 17:19:27 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "Config.h"
+   2          #include "GPIO.h"
+   3          #include "UART.h"
+   4          #include "NVIC.h"
+   5          #include "Switch.h"
+   6          #include "Delay.h"
+   7          #include "RTCTIME.h"
+   8          #include "I2C.h"
+   9          #include "Exti.h"
+  10          #include "NVIC.h"
+  11          
+  12          /******************* IO配置函数 *******************/
+  13          void  GPIO_config(void)
+  14          {
+  15   1          GPIO_InitTypeDef  GPIO_InitStructure;   //结构定义
+  16   1      
+  17   1          GPIO_InitStructure.Pin  = GPIO_Pin_7;   //指定要初始化的IO, GPIO_Pin_0 ~ GPIO_Pin_7
+  18   1          GPIO_InitStructure.Mode = GPIO_PullUp;      //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+  19   1          GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);  //初始化
+  20   1      }
+  21          
+  22          /***************  串口初始化函数 *****************/
+  23          void  UART_config(void)
+  24          {
+  25   1          COMx_InitDefine   COMx_InitStructure;         //结构定义
+  26   1      
+  27   1          COMx_InitStructure.UART_Mode      = UART_8bit_BRTx; //模式, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,U
+             -ART_9bit_BRTx
+  28   1          COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;     //选择波特率发生器, BRT_Timer1, BRT_Timer2 (注意: 串
+             -口2固定使用BRT_Timer2)
+  29   1          COMx_InitStructure.UART_BaudRate  = 115200ul;       //波特率, 一般 110 ~ 115200
+  30   1          COMx_InitStructure.UART_RxEnable  = ENABLE;         //接收允许,   ENABLE或DISABLE
+  31   1          COMx_InitStructure.BaudRateDouble = DISABLE;        //波特率加倍, ENABLE或DISABLE
+  32   1          UART_Configuration(UART1, &COMx_InitStructure);     //初始化串口1 UART1,UART2,UART3,UART4
+  33   1      
+  34   1          NVIC_UART1_Init(ENABLE,Priority_1);   //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,
+             -Priority_2,Priority_3
+  35   1      
+  36   1          UART1_SW(UART1_SW_P30_P31);   // 引脚选择, UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_
+             -P43_P44
+  37   1      }
+  38          
+  39          
+  40          /******************** INT配置 ********************/
+  41          void  Exti_config(void)
+  42          {
+  43   1          EXTI_InitTypeDef  Exti_InitStructure;             //结构定义
+  44   1      
+  45   1          Exti_InitStructure.EXTI_Mode      = EXT_MODE_Fall;//中断模式,   EXT_MODE_RiseFall,EXT_MODE_Fall
+  46   1          Ext_Inilize(EXT_INT3,&Exti_InitStructure);        //初始化
+  47   1          NVIC_INT3_Init(ENABLE,Priority_0);    //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,P
+             -riority_2,Priority_3
+  48   1      }
+C51 COMPILER V9.60.7.0   MAIN                                                              08/14/2024 17:19:27 PAGE 2   
+
+  49          
+  50          
+  51          
+  52          void TRC_on_alarm() {
+  53   1      
+  54   1          printf("Alarm\n");
+  55   1      
+  56   1      }
+  57          
+  58          void TRC_on_timer() {
+  59   1      
+  60   1          printf("Timer\n");
+  61   1      }
+  62          
+  63          
+  64          
+  65          
+  66          
+  67          
+  68          void main() {
+  69   1          Clock_t c;
+  70   1          alarm a;
+  71   1      
+  72   1          EAXSFR();
+  73   1      
+  74   1          GPIO_config();
+  75   1          UART_config();
+  76   1          Exti_config();
+  77   1          RCT_TIME_init();
+  78   1          EA = 1;
+  79   1      
+  80   1      
+  81   1          delay_ms(200);
+  82   1      
+  83   1          // 提前准备时间，写1次时间 -------------------------------------
+  84   1          // 准备 秒、分、时、天、周、世纪&月、年
+  85   1          c.year = 2024, c.month = 8, c.day = 12, c.week = 1;
+  86   1          c.hour = 23, c.minute = 59, c.second = 55;
+  87   1          RCT_TIME_set_clock(c);
+  88   1      
+  89   1          // 设置闹铃 0x09--------------------------------------------------------
+  90   1          a.minute = 0, a.hour = 0, a.day = 13, a.week = 2;
+  91   1          set_alarm(a);
+  92   1      
+  93   1          // 启用闹铃
+  94   1          get_alarm(ENABLE);
+  95   1      
+  96   1      // 设置定时器 0E的频率和0F的值
+  97   1          set_Timer(HZ64, 64);
+  98   1      
+  99   1      // 启用定时器
+ 100   1          get_Timer(ENABLE);
+ 101   1      
+ 102   1      
+ 103   1          while(1) {
+ 104   2      
+ 105   2              // 循环读取数据: 秒、分、时、天、周、月、年、世纪
+ 106   2              RCT_TIME_get_clock(&c);
+ 107   2      
+ 108   2              // 打印数据
+ 109   2              printf("%02d-%02d-%02d ", (int)c.year, (int)c.month, (int)c.day);
+ 110   2              printf("%02d:%02d:%02d ", (int)c.hour, (int)c.minute, (int)c.second);
+C51 COMPILER V9.60.7.0   MAIN                                                              08/14/2024 17:19:27 PAGE 3   
+
+ 111   2              printf("week->%d\n", (int)c.week);
+ 112   2      
+ 113   2              delay_ms(250);
+ 114   2              delay_ms(250);
+ 115   2              delay_ms(250);
+ 116   2              delay_ms(250);
+ 117   2      
+ 118   2      
+ 119   2          }
+ 120   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    315    ----
+   CONSTANT SIZE    =     56    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      24
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

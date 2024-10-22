@@ -1,0 +1,14 @@
+".\Objects\main.obj",
+".\Objects\Delay.obj",
+".\Objects\GPIO.obj",
+".\Objects\I2C.obj",
+".\Objects\I2C_Isr.obj",
+".\Objects\NVIC.obj",
+".\Objects\UART.obj",
+".\Objects\UART_Isr.obj",
+".\Objects\Exti.obj",
+".\Objects\Exti_Isr.obj",
+".\Objects\RTCTIME.obj" 
+TO ".\Objects\Project" 
+PRINT(".\Listings\Project.m51") RAMSIZE(256) 
+DISABLEWARNING (16,15) 

@@ -1,0 +1,35 @@
+C51 COMPILER V9.60.7.0   RTC_TIME                                                          08/10/2024 20:20:25 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE RTC_TIME
+OBJECT MODULE PLACED IN .\Objects\RTC_TIME.obj
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE RTC_TIME.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\
+                    -RTC_TIME.lst) TABS(2) OBJECT(.\Objects\RTC_TIME.obj)
+
+line level    source
+
+   1          #include "RCT_TIME.h"
+*** WARNING C318 IN LINE 1 OF RTC_TIME.c: can't open file 'RCT_TIME.h'
+   2          
+   3          
+   4          void RCT_TIME_init(){
+   5   1      
+   6   1      }
+   7          
+   8          void RCT_TIME_set_clock(){}
+   9          
+  10          void RCT_TIME_get_clock(){}
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =      3    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

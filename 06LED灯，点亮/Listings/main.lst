@@ -1,0 +1,162 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              08/05/2024 20:33:48 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "config.h"
+   2          #include  "GPIO.h"
+   3          #include  "UART.h"
+   4          #include  "Delay.h"
+   5          #include  "NVIC.h"
+   6          #include  "Switch.h"
+   7          
+   8          
+   9          
+  10          
+  11          #define LED_SW      P45
+  12          #define LED1        P27
+  13          #define LED2        P26
+  14          #define LED3        P15
+  15          #define LED4        P14
+  16          #define LED5        P23
+  17          #define LED6        P22
+  18          #define LED7        P21
+  19          #define LED8        P20
+  20          
+  21          void GPIO_config(void) {
+  22   1          GPIO_InitTypeDef  GPIO_InitStructure;   //结构定义
+  23   1      
+  24   1          // LED_SW
+  25   1          GPIO_InitStructure.Pin  = GPIO_Pin_5;   //指定要初始化的IO,
+  26   1          GPIO_InitStructure.Mode = GPIO_OUT_PP;  //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,GPI
+             -O_OUT_PP
+  27   1          GPIO_Inilize(GPIO_P4, &GPIO_InitStructure);//初始化
+  28   1      
+  29   1          // P2
+  30   1          GPIO_InitStructure.Pin  = GPIO_Pin_7 | GPIO_Pin_6 | GPIO_Pin_3 | GPIO_Pin_2 | GPIO_Pin_1 | GPIO_Pin_0;
+             -    //指定要初始化的IO,
+  31   1          GPIO_InitStructure.Mode = GPIO_PullUp;  //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,GPI
+             -O_OUT_PP
+  32   1          GPIO_Inilize(GPIO_P2, &GPIO_InitStructure);//初始化
+  33   1      
+  34   1          //P1
+  35   1          GPIO_InitStructure.Pin = GPIO_Pin_4 | GPIO_Pin_5;
+  36   1          GPIO_InitStructure.Mode = GPIO_PullUp;
+  37   1          GPIO_Inilize(GPIO_P1,&GPIO_InitStructure);
+  38   1      }
+  39          
+  40          /***************  串口初始化函数 *****************/
+  41          void  UART_config(void)
+  42          {
+  43   1          COMx_InitDefine   COMx_InitStructure;         //结构定义
+  44   1      
+  45   1          COMx_InitStructure.UART_Mode      = UART_8bit_BRTx; //模式, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,U
+             -ART_9bit_BRTx
+  46   1          COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;     //选择波特率发生器, BRT_Timer1, BRT_Timer2 (注意: 串
+             -口2固定使用BRT_Timer2)
+  47   1          COMx_InitStructure.UART_BaudRate  = 115200ul;     //波特率, 一般 110 ~ 115200
+  48   1          COMx_InitStructure.UART_RxEnable  = ENABLE;       //接收允许,   ENABLE或DISABLE
+  49   1          COMx_InitStructure.BaudRateDouble = DISABLE;      //波特率加倍, ENABLE或DISABLE
+C51 COMPILER V9.60.7.0   MAIN                                                              08/05/2024 20:33:48 PAGE 2   
+
+  50   1          UART_Configuration(UART1, &COMx_InitStructure);   //初始化串口1 UART1,UART2,UART3,UART4
+  51   1          NVIC_UART1_Init(ENABLE,Priority_1);   //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,
+             -Priority_2,Priority_3
+  52   1      
+  53   1          UART1_SW(UART1_SW_P30_P31);   //UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
+  54   1      }
+  55          
+  56          
+  57          
+  58          void main() {
+  59   1          int8 i;
+  60   1      
+  61   1          GPIO_config();
+  62   1          UART_config();
+  63   1      
+  64   1          EA = 1;
+  65   1      
+  66   1          LED_SW = 0;
+  67   1      
+  68   1          // LED, 先全部关掉
+  69   1          LED1 = LED2 = LED3 = LED4 = LED5 = LED6 = LED7 = LED8 = 1;
+  70   1      
+  71   1          while(1) {
+  72   2      
+  73   2              //循环在这里判断并处理接收到的数据
+  74   2              if(COM1.RX_TimeOut > 0 &&  --COM1.RX_TimeOut == 0)//RX_TimeOut 接收超时
+  75   2              {
+  76   3                  if(COM1.RX_Cnt > 0)//判断是否有数据
+  77   3                  {
+  78   4                      //RX1_Buffer[i]存的是接受的每个字节，写出用TX1_write2buff
+  79   4                      if(RX1_Buffer[0] == 0x00) {//第一个字节=0
+  80   5                          for(i = 0; i <= 8; i++)
+  81   5                          {
+  82   6                              if( i == 0) LED1 = 0;
+  83   6                              else if (i == 1) LED2 = 0;
+  84   6                              else if (i == 2) LED3 = 0;
+  85   6                              else if (i == 3) LED4 = 0;
+  86   6                              else if (i == 4) LED5 = 0;
+  87   6                              else if (i == 5) LED6 = 0;
+  88   6                              else if (i == 6) LED7 = 0;
+  89   6                              else if (i == 7) LED8 = 0;
+  90   6                              delay_ms(100);
+  91   6                          }
+  92   5                          delay_ms(250);
+  93   5                          LED1 = LED2 = LED3 = LED4 = LED5 = LED6 = LED7 = LED8 = 1;
+  94   5      
+  95   5                      }
+  96   4      
+  97   4                      else if(RX1_Buffer[0] == 0x10)
+  98   4                      {
+  99   5                          for(i = 7; i >= -1; i--)
+ 100   5                          {
+ 101   6                              if( i == 0) LED1 = 0;
+ 102   6                              else if (i == 1) LED2 = 0;
+ 103   6                              else if (i == 2) LED3 = 0;
+ 104   6                              else if (i == 3) LED4 = 0;
+ 105   6                              else if (i == 4) LED5 = 0;
+ 106   6                              else if (i == 5) LED6 = 0;
+ 107   6                              else if (i == 6) LED7 = 0;
+ 108   6                              else if (i == 7) LED8 = 0;
+ 109   6                              delay_ms(100);
+ 110   6                          }
+C51 COMPILER V9.60.7.0   MAIN                                                              08/05/2024 20:33:48 PAGE 3   
+
+ 111   5                          delay_ms(250);
+ 112   5                          LED1 = LED2 = LED3 = LED4 = LED5 = LED6 = LED7 = LED8 = 1;
+ 113   5      
+ 114   5      
+ 115   5                      }
+ 116   4                      //清零数据计数值
+ 117   4                      COM1.RX_Cnt = 0;
+ 118   4                  }
+ 119   3      
+ 120   3      
+ 121   3      
+ 122   3      
+ 123   3      
+ 124   3              }
+ 125   2          }
+ 126   1      
+ 127   1      }
+ 128          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    357    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      12
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

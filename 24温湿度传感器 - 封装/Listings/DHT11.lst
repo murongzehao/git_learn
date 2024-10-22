@@ -1,0 +1,164 @@
+C51 COMPILER V9.60.7.0   DHT11                                                             08/14/2024 10:56:57 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE DHT11
+OBJECT MODULE PLACED IN .\Objects\DHT11.obj
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE DHT11.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\DHT
+                    -11.lst) TABS(2) OBJECT(.\Objects\DHT11.obj)
+
+line level    source
+
+   1          #include "DHT11.H"
+   2          #include "Delay.h"
+   3          #include "GPIO.h"
+   4          
+   5          
+   6          
+   7          /******************* IO配置函数 *******************/
+   8          void  GPIO_config(void)
+   9          {
+  10   1          GPIO_InitTypeDef  GPIO_InitStructure;   //结构定义
+  11   1      
+  12   1          GPIO_InitStructure.Pin  = DHT_PIN;    //指定要初始化的IO, GPIO_Pin_0 ~ GPIO_Pin_7
+  13   1          GPIO_InitStructure.Mode = GPIO_PullUp;      //指定IO的输入或输出方式,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+  14   1          GPIO_Inilize(DHT_PORT,&GPIO_InitStructure); //初始化
+  15   1      
+  16   1      }
+  17          void DHT11_init() {
+  18   1          GPIO_config();
+  19   1      
+  20   1      }
+  21          
+  22          void Delay1us(void) //@24.000MHz
+  23          {
+  24   1          unsigned char data i;
+  25   1      
+  26   1          i = 5;
+  27   1          while (--i);
+  28   1      }
+  29          
+  30          void delay1_us(void)  //@24.000MHz
+  31          {
+  32   1          NOP12();
+  33   1      }
+  34          
+  35          // 读取DHT11数据(千万不要随意打日志，会耗时)
+  36          
+  37          #define wait_level_change(level,min,max,desc)                          \
+  38              cnt = 0;                                                           \
+  39              while( DHT == level) {                                             \
+  40                  delay1_us();                                                   \
+  41                  cnt++;                                                         \
+  42                                                                                 \
+  43              }                                                                  \
+  44              if( cnt <min || cnt > max) {                                       \
+  45                  printf("err:时间[%dus],不满足%s[%d,%d]\n",                       \
+  46                         (int)cnt,desc,(int)min,(int)max);                       \
+  47                                                                                 \
+  48              }                                                                  \
+  49          
+  50          char on_read(u8 * dat) {
+  51   1          char i,j;
+  52   1          u16 cnt = 0;//计时器，每+1，过了1us，一定要初始化为0
+  53   1      
+C51 COMPILER V9.60.7.0   DHT11                                                             08/14/2024 10:56:57 PAGE 2   
+
+  54   1          //1.主机起始信号（拉低10~30ms）
+  55   1          DHT = 0;
+  56   1          delay_ms(20);
+  57   1          //然后拉高
+  58   1          DHT = 1;
+  59   1      
+  60   1          //2.等待主机释放总线(10~35ms)
+  61   1          cnt = 0;
+  62   1          while(DHT == 1 && cnt < 40) {
+  63   2              delay1_us();
+  64   2              cnt++;
+  65   2      
+  66   2          }
+  67   1          if( cnt < 8 || cnt > 37) {
+  68   2              printf("err:时间[%dus]不满足主机释放总线时间[%d,%d]\n",
+  69   2                     (int)cnt, (int)8, (int)37);
+  70   2              return -1;
+  71   2          }
+  72   1      
+  73   1          //3.从机响应低电平时间，[78,88]us,当前0，直到1，结束循环
+  74   1          wait_level_change(0,78,88,"响应低电平时间");
+  75   1      
+  76   1          // 4. 响应高电平时间，87us [80, 92]us, 当前1，直到0 结束循环
+  77   1          wait_level_change(1,80,92,"响应高电平时间");
+  78   1      
+  79   1          for(i = 0; i < 5; i++ ) {
+  80   2              //高位先输出，也就是第7位先输出、
+  81   2              for(j = 7; j>= 0; j--) {
+  82   3                  //5.数据位：低电平时间54us[50,58]us,当前0，直到1，结束循环
+  83   3                  wait_level_change(0,48,64,"DATA信号低电平时间");
+  84   3      
+  85   3                  //6.数据位：0的高电平时间[23,27],1的高电平时间[68,74],当前1，直到0，结束循环
+  86   3      
+  87   3                  wait_level_change(1,23,74,"DATA信号低电平时间");
+  88   3      
+  89   3                  if( cnt > 50 ) { //高电平时间较长，是1
+  90   4                      //初始化默认i是0 0 0 0    0 0 0 0
+  91   4                      //这个判断是用来判断索引i字节的第j号位是1的话就放进去
+  92   4                      dat[i] |= (1 << j);
+  93   4                  }
+  94   3      
+  95   3              }
+  96   2      
+  97   2          }
+  98   1          //主机释放总线
+  99   1          DHT = 1;
+ 100   1      //    printf("cnt:%d\n",cnt);
+ 101   1      //    for( i = 0; i < 5; i++) {
+ 102   1      //        printf("%d ",(int)dat[i]);
+ 103   1      //    }
+ 104   1      //    printf("\n");
+ 105   1      
+ 106   1          //校验数据
+ 107   1          if(dat[0] +dat[1] + dat[2] +dat[3] != dat[4]) {
+ 108   2              printf("check failure!\n");
+ 109   2          }
+ 110   1      
+ 111   1          return 0 ;
+ 112   1      }
+ 113          
+ 114          char DHT11_get_info(float * humidity,float * temperature) {
+ 115   1          u8 dat[5] = {0};//容器存放40bit数据，也就是40 / 8 = 5个字节
+C51 COMPILER V9.60.7.0   DHT11                                                             08/14/2024 10:56:57 PAGE 3   
+
+ 116   1      
+ 117   1          char rst = on_read(dat);
+ 118   1      
+ 119   1          if(rst != 0) {     //取出湿度的整数部分 + 小数部分 * 0.1
+ 120   2              return rst;
+ 121   2          }
+ 122   1          *humidity = dat[0] + dat[1] * 0.1f;
+ 123   1      
+ 124   1          //取出温度的整数部分 + 小数部分(低7位) * 0.1
+ 125   1          *temperature = dat[2] +(dat[3] & 0x7f) * 0.1f;
+ 126   1      
+ 127   1          //温度小数部分的最高位：0表示正温度，1表示负温度
+ 128   1          if(dat[3] >> 7) {
+ 129   2              *temperature *= -1;
+ 130   2          }
+ 131   1         
+ 132   1      
+ 133   1      
+ 134   1          return 0 ;
+ 135   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    801    ----
+   CONSTANT SIZE    =    147    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      20
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

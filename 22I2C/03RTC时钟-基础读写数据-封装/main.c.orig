@@ -1,0 +1,77 @@
+#include "config.h"
+#include "NVIC.h"
+#include "UART.h"
+#include "Switch.h"
+#include "Delay.h"
+#include "I2C.h"
+#include "RTCTIME.h"
+
+/***************  串口初始化函数 *****************/
+void	UART_config(void)
+{
+    COMx_InitDefine		COMx_InitStructure;					//结构定义
+
+    COMx_InitStructure.UART_Mode      = UART_8bit_BRTx;	//模式, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,UART_9bit_BRTx
+    COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;			//选择波特率发生器, BRT_Timer1, BRT_Timer2 (注意: 串口2固定使用BRT_Timer2)
+    COMx_InitStructure.UART_BaudRate  = 115200ul;			  //波特率, 一般 110 ~ 115200
+    COMx_InitStructure.UART_RxEnable  = ENABLE;				  //接收允许,   ENABLE或DISABLE
+    COMx_InitStructure.BaudRateDouble = DISABLE;			  //波特率加倍, ENABLE或DISABLE
+    UART_Configuration(UART1, &COMx_InitStructure);		  //初始化串口1 UART1,UART2,UART3,UART4
+
+    NVIC_UART1_Init(ENABLE,Priority_1);		//中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,Priority_2,Priority_3
+
+    UART1_SW(UART1_SW_P30_P31);		//UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
+}
+#define NUMBER 7
+
+void main() {
+		Clock_t c;
+    u8 dev_addr = 0x51 << 1; //A2 设备写地址
+    u8 mem_addr = 0x02;			// 这个芯片设定的秒地址是02
+    u8 p[NUMBER] = {0};
+    u8 second, minute, hour, day, week, month, cent;
+    u16 year;
+
+    EAXSFR();//扩展寄存器使能
+
+    UART_config();
+
+		RCT_TIME_init();
+
+
+    EA = 1;
+    c.second = 55,  c.minute = 59, c.hour = 23;
+    c.day = 31, c.week = 6, c.month = 12,c.year = 2024;
+				RCT_TIME_set_clock(c);
+
+    
+
+
+    while(1) {
+        //读取数据
+        I2C_ReadNbyte(dev_addr, mem_addr, p,NUMBER);
+        //因为设定是BCD格式即4位二进制数为一位十进制数，所以获取十位的数需要把前4位的数移到后四位获取单个数再 *10 转换成十进制的十位
+        //second 如 p[0] =  VL 1 1 1   0 0 0 0  要获取十位数只需获取前3位  &0x07(0 0 0 0   0 1 1 1)是为了把VL去掉 或是前面不用的位数就不需要换算
+        second = ((p[0] >> 4) & 0x07) * 10 + (p[0] & 0x0f);
+        minute = ((p[1] >> 4) & 0x07) * 10 + (p[1] & 0x0f);
+        hour   = ((p[2] >> 4) & 0x03) * 10 + (p[2] & 0x0f);
+        day    = ((p[3] >> 4) & 0x03) * 10 + (p[3] & 0x0f);
+        week   =   p[4] & 0x07;
+        month  = ((p[5] >> 4) & 0x01) * 10 + (p[5] & 0x0f);
+        cent   =   p[5] >> 7;
+        year   = ((p[6] >> 4) & 0x0f) * 10 + (p[6] & 0x0f);
+        //年还要加上世纪组成四位数
+        year   +=  ((cent == 0) ? 2000 : 2100);
+
+        printf("%02d时:%02d分:%02d秒\n",(int)hour,(int)minute,(int)second);
+        printf("%02d/%02d/%02d\n",(int)year,(int)month,(int)day);
+        printf("week:%d\n",(int)week);
+        printf("----------------------------");
+        delay_ms(250);
+        delay_ms(250);
+        delay_ms(250);
+        delay_ms(250);
+
+
+    }
+}

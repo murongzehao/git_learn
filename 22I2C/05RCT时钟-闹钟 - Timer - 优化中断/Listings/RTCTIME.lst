@@ -1,0 +1,249 @@
+C51 COMPILER V9.60.7.0   RTCTIME                                                           08/14/2024 17:55:02 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE RTCTIME
+OBJECT MODULE PLACED IN .\Objects\RTCTIME.obj
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE RTCTIME.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\R
+                    -TCTIME.lst) TABS(2) OBJECT(.\Objects\RTCTIME.obj)
+
+line level    source
+
+   1          #include "RTCTIME.h"
+   2          #include "GPIO.h"
+   3          #include "NVIC.h"
+   4          #include "I2C.h"
+   5          #include "Switch.h"
+   6          
+   7          #define NUMBER 7
+   8          
+   9          
+  10          /******************* IOÅäÖÃº¯Êý *******************/
+  11          static void GPIO_config(void)
+  12          {
+  13   1          GPIO_InitTypeDef  GPIO_InitStructure;   //½á¹¹¶¨Òå
+  14   1      
+  15   1          GPIO_InitStructure.Pin  = GPIO_Pin_2 | GPIO_Pin_3;    //Ö¸¶¨Òª³õÊ¼»¯µÄIO, GPIO_Pin_0 ~ GPIO_Pin_7
+  16   1          GPIO_InitStructure.Mode = GPIO_OUT_OD;      //Ö¸¶¨IOµÄÊäÈë»òÊä³ö·½Ê½,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+  17   1          GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);  //³õÊ¼»¯
+  18   1      }
+  19          
+  20          /****************  I2C³õÊ¼»¯º¯Êý *****************/
+  21          void  I2C_config(void)
+  22          {
+  23   1          I2C_InitTypeDef   I2C_InitStructure;
+  24   1      
+  25   1          I2C_InitStructure.I2C_Mode      = I2C_Mode_Master;  //Ö÷´ÓÑ¡Ôñ   I2C_Mode_Master, I2C_Mode_Slave
+  26   1          I2C_InitStructure.I2C_Enable    = ENABLE;     //I2C¹¦ÄÜÊ¹ÄÜ,   ENABLE, DISABLE
+  27   1          I2C_InitStructure.I2C_MS_WDTA   = DISABLE;      //Ö÷»úÊ¹ÄÜ×Ô¶¯·¢ËÍ,  ENABLE, DISABLE
+  28   1          I2C_InitStructure.I2C_Speed     = 13;       //×ÜÏßËÙ¶È=Fosc/2/(Speed*2+4),      0~63
+  29   1          // 400k, 24M => 13
+  30   1          I2C_Init(&I2C_InitStructure);
+  31   1          NVIC_I2C_Init(I2C_Mode_Master,DISABLE,Priority_0);  //Ö÷´ÓÄ£Ê½, I2C_Mode_Master, I2C_Mode_Slave; ÖÐ¶ÏÊ¹
+             -ÄÜ, ENABLE/DISABLE; ÓÅÏÈ¼¶(µÍµ½¸ß) Priority_0,Priority_1,Priority_2,Priority_3
+  32   1      
+  33   1          I2C_SW(I2C_P33_P32);          //I2C_P14_P15,I2C_P24_P25,I2C_P33_P32
+  34   1      }
+  35          
+  36          void RCT_TIME_init() {
+  37   1          GPIO_config();
+  38   1          I2C_config();
+  39   1      
+  40   1      }
+  41          
+  42          void RCT_TIME_set_clock(Clock_t c) {
+  43   1          u8 p[NUMBER] = {0};
+  44   1          u8 cent;
+  45   1      
+  46   1          p[0] = ((c.second / 10) << 4) | (c.second % 10);
+  47   1          p[1] = ((c.minute / 10) << 4) | (c.minute % 10);
+  48   1          p[2] = ((c.hour / 10) << 4) | (c.hour % 10);
+  49   1          p[3] = ((c.day / 10) << 4) | (c.day % 10);
+  50   1          p[4] = c.week;
+  51   1          cent = (c.year >= 2100) ? 1 : 0;
+  52   1          p[5] = (cent << 7 | (c.month / 10) << 4) | (c.month % 10);
+C51 COMPILER V9.60.7.0   RTCTIME                                                           08/14/2024 17:55:02 PAGE 2   
+
+  53   1          p[6] = ((c.year % 100 / 10) << 4) | (c.year % 10);
+  54   1      
+  55   1          RCT_TIME_Write(RCT_TIME_ADDR,RCT_TIME_REG, p, NUMBER);
+  56   1      }
+  57          
+  58          // º¯ÊýÀïÃæµÄÔËËã³öÁËº¯Êý¾Í»á½áÊø½ø³Ì£¬Òªµ÷ÓÃº¯ÊýÀïÃæµÄÖµÐèÒªÓÃÖ¸Õë
+  59          void RCT_TIME_get_clock(Clock_t * c) {
+  60   1          u8 p[NUMBER] = {0};
+  61   1          u8 cent;
+  62   1          //½á¹¹Ìå
+  63   1      //¶ÁÈ¡Êý¾Ý
+  64   1          RCT_TIME_Read(RCT_TIME_ADDR,RCT_TIME_REG,p,NUMBER);
+  65   1          //ÒòÎªÉè¶¨ÊÇBCD¸ñÊ½¼´4Î»¶þ½øÖÆÊýÎªÒ»Î»Ê®½øÖÆÊý£¬ËùÒÔ»ñÈ¡Ê®Î»µÄÊýÐèÒª°ÑÇ°4Î»µÄÊýÒÆµ½ºóËÄÎ»»ñÈ¡µ¥¸öÊýÔÙ 
+             -*10 ×ª»»³ÉÊ®½øÖÆµÄÊ®Î»
+  66   1          //second Èç p[0] =  VL 1 1 1   0 0 0 0  Òª»ñÈ¡Ê®Î»ÊýÖ»Ðè»ñÈ¡Ç°3Î»  &0x07(0 0 0 0   0 1 1 1)ÊÇÎªÁË°ÑVLÈ
+             -¥µô »òÊÇÇ°Ãæ²»ÓÃµÄÎ»Êý¾Í²»ÐèÒª»»Ëã
+  67   1          c -> second = ((p[0] >> 4) & 0x07) * 10 + (p[0] & 0x0f);
+  68   1          c -> minute = ((p[1] >> 4) & 0x07) * 10 + (p[1] & 0x0f);
+  69   1          c -> hour   = ((p[2] >> 4) & 0x03) * 10 + (p[2] & 0x0f);
+  70   1          c -> day    = ((p[3] >> 4) & 0x03) * 10 + (p[3] & 0x0f);
+  71   1          c -> week   =   p[4] & 0x07;
+  72   1          c -> month  = ((p[5] >> 4) & 0x01) * 10 + (p[5] & 0x0f);
+  73   1          cent   =   p[5] >> 7;
+  74   1          c -> year   = ((p[6] >> 4) & 0x0f) * 10 + (p[6] & 0x0f);
+  75   1          //Äê»¹Òª¼ÓÉÏÊÀ¼Í×é³ÉËÄÎ»Êý
+  76   1          c -> year   +=  ((cent == 0) ? 2000 : 2100);
+  77   1      }
+  78          
+  79          void set_alarm(alarm a) {
+  80   1          u8 p[4];
+  81   1      
+  82   1          // ·Ö M 1 1 1 - 0 0 0 0     Enable -> 0, Disable -> 1 << 7 (0x80)
+  83   1          if(a.minute >= 0) {
+  84   2              p[0] = ((a.minute / 10) << 4) + (a.minute % 10);
+  85   2          } else {
+  86   2              p[0] = 0x80;
+  87   2          }
+  88   1          // Ê± H X 1 1 - 0 0 0 0     Enable -> 0, Disable -> 1 << 7 (0x80)
+  89   1          if(a.hour >= 0) {
+  90   2              p[1] = ((a.hour / 10) << 4) + (a.hour % 10);
+  91   2          } else {
+  92   2              p[1] = 0x80;
+  93   2          }
+  94   1          // Ìì D X 1 1 - 0 0 0 0     Enable -> 0, Disable -> 1 << 7 (0x80)
+  95   1          if(a.day >= 0) {
+  96   2              p[2] = ((a.day / 10) << 4) + (a.day % 10);
+  97   2          } else {
+  98   2              p[2] = 0x80;
+  99   2          }
+ 100   1          // ÖÜ W X X X - X 0 0 0     Enable -> 0, Disable -> 1 << 7 (0x80)
+ 101   1          if(a.week >= 0) {
+ 102   2              p[3] = a.week;
+ 103   2          } else {
+ 104   2              p[3] = 0x80;
+ 105   2          }
+ 106   1      
+ 107   1          RCT_TIME_Write(RCT_TIME_ADDR, 0x09, p, 4);
+ 108   1      
+ 109   1      }
+ 110          //0x09ÊÇ±¨¾¯¼Ä´æÆ÷µÄÎ»ÖÃ£¬0x01ÊÇ¿ØÖÆ¼Ä´æÆ÷µÄÎ»ÖÃ¡£
+ 111          //Ð´½ø±¨¾¯¼Ä´æÆ÷£¬Í¨¹ý¿ØÖÆ¼Ä´æÆ÷µÄ¿ª¹ØÀ´¶ÁÈ¡
+ 112          
+C51 COMPILER V9.60.7.0   RTCTIME                                                           08/14/2024 17:55:02 PAGE 3   
+
+ 113          void clear_alarm() {
+ 114   1          u8 cs2;
+ 115   1          // Çå³ýAlarm±ê¼Ç£¬AFÉèÖÃÎª0£¬ÏÂ´ÎÄÖÖÓµ½µã²ÅÄÜ´¥·¢INT
+ 116   1          RCT_TIME_Read(RCT_TIME_ADDR, 0x01, &cs2, 1);//ÏÈ°ÑÄÖÖÓÀï´æµÄÖµÓÃcs2¶Á³öÀ´£¬ÓÐ¿ÉÄÜÖ®Ç°Áô´æÓÐÊý¾Ý
+ 117   1          //¶¨ÒåµÄcs2µÄÖµÊÇ0x00,ÕâÀï²Ù×÷µÄÊÇ¶Á³öÀ´µÄcs2
+ 118   1          //Çå³ýAlarm±ê¼Ç,AFÖÃ0
+ 119   1          cs2 &= ~(1 << 3);       //0x03
+ 120   1          // Ð´»Øcs2¼Ä´æÆ÷
+ 121   1          RCT_TIME_Write(RCT_TIME_ADDR, 0x01, &cs2, 1);
+ 122   1      
+ 123   1      }
+ 124          
+ 125          void get_alarm(u8 enable) {
+ 126   1          u8 cs2;
+ 127   1      
+ 128   1      // ÆôÓÃÄÖÁå 0x01 cs2--------------------------------------------------------
+ 129   1          RCT_TIME_Read(RCT_TIME_ADDR, 0x01, &cs2, 1);//ÏÈ°ÑÄÖÖÓÀï´æµÄÖµÓÃcs2¶Á³öÀ´£¬ÓÐ¿ÉÄÜÖ®Ç°Áô´æÓÐÊý¾Ý
+ 130   1          //Çå³ýAlarm±ê¼Ç,AFÖÃ0
+ 131   1          //¶¨ÒåµÄcs2µÄÖµÊÇ0x00,ÕâÀï²Ù×÷µÄÊÇ¶Á³öÀ´µÄcs2
+ 132   1          cs2 &= ~(1 << 3);       //0x03
+ 133   1          // ¿ªÆôAlarmÖÐ¶Ï£¬AIEÉèÖÃÎª1
+ 134   1          if(enable) {
+ 135   2              cs2 |= (1 << 1);  // 0x02
+ 136   2          } else {
+ 137   2              cs2 &=~(1 << 1);  // 0x02
+ 138   2          }
+ 139   1          RCT_TIME_Write(RCT_TIME_ADDR, 0x01, &cs2, 1);
+ 140   1      
+ 141   1      }
+ 142          
+ 143          
+ 144          // ÉèÖÃ¶¨Ê±Æ÷
+ 145          void set_Timer(TimerFreq freq, u8 countdown) {
+ 146   1          u8 tim;
+ 147   1          //ÉèÖÃTimer¼ÆÊýÖµ
+ 148   1          tim = (1 << 7) + freq;
+ 149   1          RCT_TIME_Write(RCT_TIME_ADDR, 0x0E, &tim, 1);
+ 150   1          tim = countdown;
+ 151   1          RCT_TIME_Write(RCT_TIME_ADDR, 0x0f, &tim, 1);
+ 152   1      }
+ 153          
+ 154          // ÆôÓÃ¶¨Ê±Æ÷
+ 155          void get_Timer(u8 enable) {
+ 156   1          u8 tim;
+ 157   1          //ÆôÓÃTimer
+ 158   1          RCT_TIME_Read(RCT_TIME_ADDR, 0x01, &tim, 1);//ÏÈ°ÑÄÖÖÓÀï´æµÄÖµÓÃcs2¶Á³öÀ´£¬ÓÐ¿ÉÄÜÖ®Ç°Áô´æÓÐÊý¾Ý
+ 159   1          //Çå³ýAlarm±ê¼Ç,AFÖÃ0
+ 160   1          //¶¨ÒåµÄcs2µÄÖµÊÇ0x00,ÕâÀï²Ù×÷µÄÊÇ¶Á³öÀ´µÄcs2
+ 161   1          tim &= ~(1 << 2);       //0x02
+ 162   1          // ¿ªÆôTimerÖÐ¶Ï£¬TIEÉèÖÃÎª1
+ 163   1          if(enable) {
+ 164   2              tim |= (1 << 0);  // 0x01
+ 165   2          } else {
+ 166   2              tim &=~(1 << 0);  // 0x01
+ 167   2          }
+ 168   1          RCT_TIME_Write(RCT_TIME_ADDR, 0x01, &tim, 1);
+ 169   1      
+ 170   1      }
+ 171          
+ 172          // Çå³ý¶¨Ê±Æ÷
+ 173          void clear_Timer() {
+ 174   1          u8 tim;
+C51 COMPILER V9.60.7.0   RTCTIME                                                           08/14/2024 17:55:02 PAGE 4   
+
+ 175   1          RCT_TIME_Read(RCT_TIME_ADDR, 0x01, &tim, 1);
+ 176   1          //Çå³ýTimer±ê¼Ç,TFÖÃ0
+ 177   1          //¶¨ÒåµÄcs2µÄÖµÊÇ0x00,ÕâÀï²Ù×÷µÄÊÇ¶Á³öÀ´µÄcs2
+ 178   1          tim &= ~(1 << 2);       //0x02
+ 179   1          RCT_TIME_Write(RCT_TIME_ADDR, 0x01, &tim, 1);
+ 180   1      }
+ 181          
+ 182          void ext_int3_call(void) {
+ 183   1      #if USE_ALARM || USE_TIMER
+ 184   1          u8 cs2;
+ 185   1          // Çå³ýAlarm±ê¼Ç£¬AFÉèÖÃÎª0£¬ÏÂ´ÎÄÖÖÓµ½µã²ÅÄÜ´¥·¢INT
+ 186   1          RCT_TIME_Read(RCT_TIME_ADDR, 0x01, &cs2, 1);
+ 187   1      #if USE_ALARM
+ 188   1          //AIE && AF
+ 189   1          if( (cs2 & 0x02) &&(cs2 & 0x08) ) {
+ 190   2              //ÇåÀíAlarmµÄAF±ê¼Ç
+ 191   2              clear_alarm();
+ 192   2              //µ±ÖÐ¶Ï´¥·¢Ê±µÄÊµÏÖÂß¼­
+ 193   2              TRC_on_alarm();
+ 194   2          }
+ 195   1      #endif
+ 196   1      
+ 197   1      #if USE_TIMER
+ 198   1          //TIE && TF
+ 199   1          if((cs2 & 0x01) && (cs2 & 0x04)) {
+ 200   2              clear_Timer();
+ 201   2              TRC_on_timer();
+ 202   2          }
+ 203   1      
+ 204   1      #endif
+ 205   1      #endif
+ 206   1      
+ 207   1      }
+ 208          
+ 209          
+ 210          
+ 211          
+ 212          
+ 213          
+ 214          
+ 215          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    914    ----
+   CONSTANT SIZE    =     14    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      51
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

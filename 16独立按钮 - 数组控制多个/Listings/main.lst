@@ -1,0 +1,144 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              08/08/2024 11:21:31 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "config.h"
+   2          #include "Delay.h"
+   3          #include "GPIO.h"
+   4          #include "UART.h"
+   5          #include "NVIC.h"
+   6          #include "switch.h"
+   7          
+   8          
+   9          
+  10          #define MOTOR   P01
+  11          
+  12          
+  13          /******************* IOÅäÖÃº¯Êý *******************/
+  14          void  GPIO_config(void)
+  15          {
+  16   1          GPIO_InitTypeDef  GPIO_InitStructure;   //½á¹¹¶¨Òå
+  17   1          GPIO_InitStructure.Pin  = GPIO_Pin_1;   //Ö¸¶¨Òª³õÊ¼»¯µÄIO,
+  18   1          GPIO_InitStructure.Mode = GPIO_OUT_PP;  //Ö¸¶¨IOµÄÊäÈë»òÊä³ö·½Ê½,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,GPI
+             -O_OUT_PP
+  19   1          GPIO_Inilize(GPIO_P0, &GPIO_InitStructure);//³õÊ¼»¯
+  20   1      
+  21   1          P5_MODE_IO_PU(GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4);
+  22   1      }
+  23          
+  24          
+  25          /***************  ´®¿Ú³õÊ¼»¯º¯Êý *****************/
+  26          void  UART_config(void)
+  27          {
+  28   1          COMx_InitDefine   COMx_InitStructure;         //½á¹¹¶¨Òå
+  29   1      
+  30   1          COMx_InitStructure.UART_Mode      = UART_8bit_BRTx; //Ä£Ê½, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,U
+             -ART_9bit_BRTx
+  31   1          COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;     //Ñ¡Ôñ²¨ÌØÂÊ·¢ÉúÆ÷, BRT_Timer1, BRT_Timer2 (×¢Òâ: ´®
+             -¿Ú2¹Ì¶¨Ê¹ÓÃBRT_Timer2)
+  32   1          COMx_InitStructure.UART_BaudRate  = 115200ul;       //²¨ÌØÂÊ, Ò»°ã 110 ~ 115200
+  33   1          COMx_InitStructure.UART_RxEnable  = ENABLE;         //½ÓÊÕÔÊÐí,   ENABLE»òDISABLE
+  34   1          COMx_InitStructure.BaudRateDouble = DISABLE;        //²¨ÌØÂÊ¼Ó±¶, ENABLE»òDISABLE
+  35   1          UART_Configuration(UART1, &COMx_InitStructure);     //³õÊ¼»¯´®¿Ú1 UART1,UART2,UART3,UART4
+  36   1      
+  37   1          NVIC_UART1_Init(ENABLE,Priority_1);   //ÖÐ¶ÏÊ¹ÄÜ, ENABLE/DISABLE; ÓÅÏÈ¼¶(µÍµ½¸ß) Priority_0,Priority_1,
+             -Priority_2,Priority_3
+  38   1      
+  39   1          UART1_SW(UART1_SW_P30_P31);   //UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
+  40   1      }
+  41          #define KEY0 P51 ///°´Å¥Ä¬ÈÏÊÇ¸ßµçÆ½£¬°´ÏÂÖ®ºóÁªÍ¨»á½Óµ½GND±äÎªµÍµçÆ½
+  42          #define KEY1 P52
+  43          #define KEY2 P53
+  44          #define KEY3 P54
+  45          
+  46          #define DOWM  0
+  47          #define UP    1
+  48          
+  49          //ÉÏÒ»´ÎµÄ³õÊ¼×´Ì¬ÊÇÌ§Æð
+  50          u8 last_key_states = 0x0f;    // keyµÄ×îºóÒ»´Î×´Ì¬
+C51 COMPILER V9.60.7.0   MAIN                                                              08/08/2024 11:21:31 PAGE 2   
+
+  51          
+  52          //ÅÐ¶ÏÖ¸¶¨Î»ÖÃµÄÊÇ°´ÏÂ»¹ÊÇÌ§Æð
+  53          #define IS_KEY_DOWM(i)   (last_key_states & (1 << i)) == 0 //ÅÐ¶Ïlast_key_statesµÄ×´Ì¬£¬Èç¹ûµÈÓÚ0¾ÍÊÇÀ­µÍ£
+             -¬¾ÍÊÇ°´ÏÂ×´Ì¬
+  54          #define IS_KEY_UP(i)     (last_key_states & (1 << i)) > 0  //ÅÐ¶Ïlast_key_statesµÄ×´Ì¬£¬Èç¹û´óÓÚ0¾ÍÊÇÀ­¸ß£
+             -¬¾ÍÊÇÌ§Æð×´Ì¬
+  55          
+  56          //½«Ö¸¶¨Î»ÖÃµÄ×´Ì¬¸ÄÎª°´ÏÂ»òÌ§Æð
+  57          #define SET_KEY_DOWM(i)   last_key_states &= ~(1 << i)  //½«Ö¸¶¨¸Ä±äÎ»ÖÃ¸ÄÎª0£¬À­µÍ£¬¼´°´ÏÂ×´Ì¬
+  58          #define SET_KEY_UP(i)     last_key_states |= (1 << i)   //½«Ö¸¶¨¸Ä±äÎ»ÖÃ¸ÄÎª1£¬À­¸ß£¬¼´Ì§Æð×´Ì¬
+  59          
+  60          void main() {
+  61   1          GPIO_config();
+  62   1          UART_config();
+  63   1      
+  64   1          EA = 1;
+  65   1      
+  66   1          while(1) {
+  67   2              if( KEY0 && IS_KEY_DOWM(0)) {// Õâ´ÎÊÇÌ§ÆðUp 1, ÉÏÒ»´ÎÊÇ°´ÏÂDown 0
+  68   3                  printf("KEY0 Up\n");
+  69   3                  MOTOR = 0;
+  70   3                  SET_KEY_UP(0);
+  71   3              }
+  72   2              else if(!KEY0 && IS_KEY_UP(0)) {// Õâ´ÎÊÇ°´ÏÂDown 0, ÉÏÒ»´ÎÊÇÌ§ÆðUp 1
+  73   3                  printf("KEY0 Dowm\n");
+  74   3                  MOTOR = 1;
+  75   3                  SET_KEY_DOWM(0);
+  76   3      
+  77   3              }
+  78   2              if( KEY1 && IS_KEY_DOWM(1)) {// Õâ´ÎÊÇÌ§ÆðUp 1, ÉÏÒ»´ÎÊÇ°´ÏÂDown 0
+  79   3                  printf("KEY1 Up\n");
+  80   3                  SET_KEY_UP(1);
+  81   3              }
+  82   2              else if(!KEY1 && IS_KEY_UP(1)) {// Õâ´ÎÊÇ°´ÏÂDown 0, ÉÏÒ»´ÎÊÇÌ§ÆðUp 1
+  83   3                  printf("KEY1 Dowm\n");
+  84   3                  SET_KEY_DOWM(1);
+  85   3      
+  86   3              }
+  87   2              if( KEY2 && IS_KEY_DOWM(2)) {// Õâ´ÎÊÇÌ§ÆðUp 1, ÉÏÒ»´ÎÊÇ°´ÏÂDown 0
+  88   3                  printf("KEY2 Up\n");
+  89   3                  SET_KEY_UP(2);
+  90   3              }
+  91   2              else if(!KEY2 && IS_KEY_UP(2)) {// Õâ´ÎÊÇ°´ÏÂDown 0, ÉÏÒ»´ÎÊÇÌ§ÆðUp 1
+  92   3                  printf("KEY2 Dowm\n");
+  93   3                  SET_KEY_DOWM(2);
+  94   3      
+  95   3              }
+  96   2              if( KEY3 && IS_KEY_DOWM(3)) {// Õâ´ÎÊÇÌ§ÆðUp 1, ÉÏÒ»´ÎÊÇ°´ÏÂDown 0
+  97   3                  printf("KEY3 Up\n");
+  98   3                  SET_KEY_UP(3);
+  99   3              }
+ 100   2              else if(!KEY3 && IS_KEY_UP(3)) {// Õâ´ÎÊÇ°´ÏÂDown 0, ÉÏÒ»´ÎÊÇÌ§ÆðUp 1
+ 101   3                  printf("KEY3 Dowm\n");
+ 102   3                  SET_KEY_DOWM(3);
+ 103   3      
+ 104   3              }
+ 105   2      
+ 106   2      
+ 107   2              delay_ms(10);
+ 108   2      
+ 109   2          }
+ 110   1      }
+C51 COMPILER V9.60.7.0   MAIN                                                              08/08/2024 11:21:31 PAGE 3   
+
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    273    ----
+   CONSTANT SIZE    =     80    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1      11
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

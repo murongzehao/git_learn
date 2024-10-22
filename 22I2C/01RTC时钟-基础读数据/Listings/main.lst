@@ -1,0 +1,127 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              08/10/2024 19:47:03 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "config.h"
+   2          #include "GPIO.h"
+   3          #include "NVIC.h"
+   4          #include "UART.h"
+   5          #include "Switch.h"
+   6          #include "Delay.h"
+   7          #include "I2C.h"
+   8          
+   9          
+  10          /******************* IOÅäÖÃº¯Êý *******************/
+  11          void  GPIO_config(void)
+  12          {
+  13   1          GPIO_InitTypeDef  GPIO_InitStructure;   //½á¹¹¶¨Òå
+  14   1      
+  15   1          GPIO_InitStructure.Pin  = GPIO_Pin_2 | GPIO_Pin_3;    //Ö¸¶¨Òª³õÊ¼»¯µÄIO, GPIO_Pin_0 ~ GPIO_Pin_7
+  16   1          GPIO_InitStructure.Mode = GPIO_OUT_OD;      //Ö¸¶¨IOµÄÊäÈë»òÊä³ö·½Ê½,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,
+             -GPIO_OUT_PP
+  17   1          GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);  //³õÊ¼»¯
+  18   1      }
+  19          
+  20          /****************  I2C³õÊ¼»¯º¯Êý *****************/
+  21          void  I2C_config(void)
+  22          {
+  23   1          I2C_InitTypeDef   I2C_InitStructure;
+  24   1      
+  25   1          I2C_InitStructure.I2C_Mode      = I2C_Mode_Master;  //Ö÷´ÓÑ¡Ôñ   I2C_Mode_Master, I2C_Mode_Slave
+  26   1          I2C_InitStructure.I2C_Enable    = ENABLE;     //I2C¹¦ÄÜÊ¹ÄÜ,   ENABLE, DISABLE
+  27   1          I2C_InitStructure.I2C_MS_WDTA   = DISABLE;      //Ö÷»úÊ¹ÄÜ×Ô¶¯·¢ËÍ,  ENABLE, DISABLE
+  28   1          I2C_InitStructure.I2C_Speed     = 13;       //×ÜÏßËÙ¶È=Fosc/2/(Speed*2+4),      0~63
+  29   1          // 400k, 24M => 13
+  30   1          I2C_Init(&I2C_InitStructure);
+  31   1          NVIC_I2C_Init(I2C_Mode_Master,DISABLE,Priority_0);  //Ö÷´ÓÄ£Ê½, I2C_Mode_Master, I2C_Mode_Slave; ÖÐ¶ÏÊ¹
+             -ÄÜ, ENABLE/DISABLE; ÓÅÏÈ¼¶(µÍµ½¸ß) Priority_0,Priority_1,Priority_2,Priority_3
+  32   1      
+  33   1          I2C_SW(I2C_P33_P32);          //I2C_P14_P15,I2C_P24_P25,I2C_P33_P32
+  34   1      }
+  35          /***************  ´®¿Ú³õÊ¼»¯º¯Êý *****************/
+  36          void  UART_config(void)
+  37          {
+  38   1          COMx_InitDefine   COMx_InitStructure;         //½á¹¹¶¨Òå
+  39   1      
+  40   1          COMx_InitStructure.UART_Mode      = UART_8bit_BRTx; //Ä£Ê½, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,U
+             -ART_9bit_BRTx
+  41   1          COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;     //Ñ¡Ôñ²¨ÌØÂÊ·¢ÉúÆ÷, BRT_Timer1, BRT_Timer2 (×¢Òâ: ´®
+             -¿Ú2¹Ì¶¨Ê¹ÓÃBRT_Timer2)
+  42   1          COMx_InitStructure.UART_BaudRate  = 115200ul;       //²¨ÌØÂÊ, Ò»°ã 110 ~ 115200
+  43   1          COMx_InitStructure.UART_RxEnable  = ENABLE;         //½ÓÊÕÔÊÐí,   ENABLE»òDISABLE
+  44   1          COMx_InitStructure.BaudRateDouble = DISABLE;        //²¨ÌØÂÊ¼Ó±¶, ENABLE»òDISABLE
+  45   1          UART_Configuration(UART1, &COMx_InitStructure);     //³õÊ¼»¯´®¿Ú1 UART1,UART2,UART3,UART4
+  46   1      
+  47   1          NVIC_UART1_Init(ENABLE,Priority_1);   //ÖÐ¶ÏÊ¹ÄÜ, ENABLE/DISABLE; ÓÅÏÈ¼¶(µÍµ½¸ß) Priority_0,Priority_1,
+             -Priority_2,Priority_3
+  48   1      
+  49   1          UART1_SW(UART1_SW_P30_P31);   //UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
+C51 COMPILER V9.60.7.0   MAIN                                                              08/10/2024 19:47:03 PAGE 2   
+
+  50   1      }
+  51          #define NUMBER 7
+  52          
+  53          void main() {
+  54   1          u8 dev_addr = 0x51 << 1; //A2 Éè±¸Ð´µØÖ·
+  55   1          u8 mem_addr = 0x02;     // Õâ¸öÐ¾Æ¬Éè¶¨µÄÃëµØÖ·ÊÇ02
+  56   1          u8 p[NUMBER] = {0};
+  57   1          u8 second, minute, hour, day, week, month, cent;
+  58   1          u16 year;
+  59   1      
+  60   1          EAXSFR();//À©Õ¹¼Ä´æÆ÷Ê¹ÄÜ
+  61   1          GPIO_config();
+  62   1          UART_config();
+  63   1          I2C_config();
+  64   1          
+  65   1          EA = 1;
+  66   1      
+  67   1          while(1) {
+  68   2              //¶ÁÈ¡Êý¾Ý
+  69   2              I2C_ReadNbyte(dev_addr, mem_addr, p,NUMBER);
+  70   2              //ÒòÎªÉè¶¨ÊÇBCD¸ñÊ½¼´4Î»¶þ½øÖÆÊýÎªÒ»Î»Ê®½øÖÆÊý£¬ËùÒÔ»ñÈ¡Ê®Î»µÄÊýÐèÒª°ÑÇ°4Î»µÄÊýÒÆµ½ºóËÄÎ»»ñÈ¡µ¥¸öÊ
+             -ýÔÙ *10 ×ª»»³ÉÊ®½øÖÆµÄÊ®Î»
+  71   2              //second Èç p[0] =  VL 1 1 1   0 0 0 0  Òª»ñÈ¡Ê®Î»ÊýÖ»Ðè»ñÈ¡Ç°3Î»  &0x07(0 0 0 0   0 1 1 1)ÊÇÎªÁË°
+             -ÑVLÈ¥µô »òÊÇÇ°Ãæ²»ÓÃµÄÎ»Êý¾Í²»ÐèÒª»»Ëã
+  72   2            second = ((p[0] >> 4) & 0x07) * 10 + (p[0] & 0x0f);
+  73   2            minute = ((p[1] >> 4) & 0x07) * 10 + (p[1] & 0x0f);
+  74   2            hour   = ((p[2] >> 4) & 0x03) * 10 + (p[2] & 0x0f);
+  75   2            day    = ((p[3] >> 4) & 0x03) * 10 + (p[3] & 0x0f);
+  76   2            week   =   p[4] & 0x07;
+  77   2            month  = ((p[5] >> 4) & 0x01) * 10 + (p[5] & 0x0f);
+  78   2            cent   =   p[5] >> 7;
+  79   2            year   = ((p[6] >> 4) & 0x0f) * 10 + (p[6] & 0x0f);
+  80   2                //Äê»¹Òª¼ÓÉÏÊÀ¼Í×é³ÉËÄÎ»Êý
+  81   2            year   +=  ((cent == 0) ? 2000 : 2100);
+  82   2            
+  83   2            printf("%02dÊ±:%02d·Ö:%02dÃë\n",(int)hour,(int)minute,(int)second);
+  84   2            printf("%02d/%02d/%02d\n",(int)year,(int)month,(int)day);
+  85   2            printf("week:%d\n",(int)week);
+  86   2            printf("----------------------------");
+  87   2            delay_ms(250);
+  88   2            delay_ms(250);
+  89   2            delay_ms(250);
+  90   2            delay_ms(250);
+  91   2      
+  92   2      
+  93   2          }
+  94   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    403    ----
+   CONSTANT SIZE    =     83    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      34
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

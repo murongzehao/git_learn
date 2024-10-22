@@ -1,0 +1,10 @@
+".\Objects\main.obj",
+".\Objects\GPIO.obj",
+".\Objects\NVIC.obj",
+".\Objects\Delay.obj",
+".\Objects\UART.obj",
+".\Objects\UART_Isr.obj",
+".\Objects\STC8H_PWM.obj" 
+TO ".\Objects\project01" 
+PRINT(".\Listings\project01.m51") RAMSIZE(256) 
+DISABLEWARNING (16) 

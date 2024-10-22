@@ -1,0 +1,91 @@
+C51 COMPILER V9.60.7.0   MATRIXKEYS                                                        08/15/2024 20:21:21 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MATRIXKEYS
+OBJECT MODULE PLACED IN .\Objects\MatrixKeys.obj
+COMPILER INVOKED BY: e:\Keil_v5\C51\BIN\C51.EXE MatrixKeys.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listing
+                    -s\MatrixKeys.lst) TABS(2) OBJECT(.\Objects\MatrixKeys.obj)
+
+line level    source
+
+   1          #include "MatrixKeys.h"
+   2          #include "GPIO.h"
+   3          
+   4          /******************* IO配置函数 *******************/
+   5          void  GPIO_config(void)
+   6          {
+   7   1          P0_MODE_IO_PU(GPIO_Pin_3 | GPIO_Pin_6 | GPIO_Pin_7)
+   8   1          P1_MODE_IO_PU(GPIO_Pin_7)
+   9   1          P3_MODE_IO_PU(GPIO_Pin_4 | GPIO_Pin_5)
+  10   1          P4_MODE_IO_PU(GPIO_Pin_0 | GPIO_Pin_1)
+  11   1      }
+  12          
+  13          void MK_init() {
+  14   1          GPIO_config();
+  15   1      }
+  16          
+  17          
+  18          u16 states = 0xffff;
+  19          
+  20          void ROW_OUT(u8 row) {
+  21   1          KROW1 = (row == 0) ? 0 : 1;
+  22   1          KROW2 = (row == 1) ? 0 : 1;
+  23   1          KROW3 = (row == 2) ? 0 : 1;
+  24   1          KROW4 = (row == 3) ? 0 : 1;
+  25   1      }
+  26          
+  27          u8 COL_IN(u8 col) {
+  28   1          if(col == 0) return KCOL1;
+  29   1          if(col == 1) return KCOL2;
+  30   1          if(col == 2) return KCOL3;
+  31   1          if(col == 3) return KCOL4;
+  32   1          return 0;
+  33   1      }
+  34          
+  35          #define IS_KEY_DOWN(row,col)      ((states & (1L << POS(row, col))) == 0)
+  36          #define IS_KEY_UP(row,col)        ((states & (1L << POS(row, col))) > 0)
+  37          #define SET_KEY_DOWN(row, col)    states &= ~(1L << POS(row, col))//当前位 置0
+  38          #define SET_KEY_UP(row, col)       states |= (1L << POS(row, col))//当前位 置1
+  39          void MK_scan(void (*MK)(u8,u8,u8)) {
+  40   1          u8 row,col;
+  41   1          //外循环遍历行
+  42   1          for(row = 0; row < ROW_NUM; row++) {
+  43   2              //控制每行的开关
+  44   2              ROW_OUT(row);
+  45   2              //内循环遍历列
+  46   2              for(col = 0; col < COL_NUM; col++) {
+  47   3                  if(COL_IN(col) == DOWM && IS_KEY_UP(row,col)) {
+  48   4      //                MK_on_keydown(row,col);
+  49   4                      SET_KEY_DOWN(row, col);
+  50   4                      MK(row,col,1);
+  51   4                  } else if(COL_IN(col) == UP && IS_KEY_DOWN(row, col)) {
+  52   4      //                MK_on_keyup(row,col);
+  53   4                      SET_KEY_UP(row, col);
+  54   4                      MK(row,col,1);
+C51 COMPILER V9.60.7.0   MATRIXKEYS                                                        08/15/2024 20:21:21 PAGE 2   
+
+  55   4                  }
+  56   3              }
+  57   2      
+  58   2          }
+  59   1      
+  60   1      
+  61   1      
+  62   1      
+  63   1      
+  64   1      }
+  65          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    321    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      2       5
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
